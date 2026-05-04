@@ -15,13 +15,13 @@ export class ProjectStoryBoardPage {
       .getByRole('button', { name: 'Button' });
   }
 
-    async waitForLoaded(timeout = 5 * 60 * 1000): Promise<void> {
-        await this.page.waitForURL(
-            /\/dashboard\/projects\?appId=[0-9a-fA-F-]+$/,
-            { timeout }
-        );
-        await expect(this.homeButton).toBeVisible();
-    }
+  async waitForLoaded(timeout = 5 * 60 * 1000): Promise<void> {
+      await this.page.waitForURL(
+          /\/dashboard\/projects\?appId=[0-9a-fA-F-]+$/,
+          { timeout }
+      );
+      await expect(this.homeButton).toBeVisible();
+  }
 
   async waitForAppDefinitionAvailable(timeout = 3 * 60 * 1000): Promise<void> {
     await expect(this.downloadAppDefinitionButton).toBeVisible({ timeout });

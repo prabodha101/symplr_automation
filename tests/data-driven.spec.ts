@@ -398,47 +398,51 @@ function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-for (const pageCase of testData.testCases.filter((item) => item.enabled !== false)) {
-  test.describe(pageCase.name, () => {
-    test(`validates configured checks for ${pageCase.name}`, async ({ page }) => {
-      console.log(`> Running test case : ${pageCase.name}`);
+for (const testCase of testData.testCases.filter((item) => item.enabled !== false)) {
+  test.describe(testCase.name, () => {
+    test(`validates configured checks for ${testCase.name}`, async ({ page }) => {
+      console.log(`>-- Running test case : ${testCase.name}`);
 
-      if (pageCase.scenario) {
-        console.log(`  >> Scenario: ${pageCase.scenario}`);
-        if (pageCase.scenarioConfig) {
+      // - Execute the scenario ('Prompt', 'Figma', 'Template', 'Existing App')
+      if (testCase.scenario) {
+        console.log(`  >> Scenario: ${testCase.scenario}`);
+        if (testCase.scenarioConfig) {
           const appCreationFlows = new AppCreationFlows(page);
-          await appCreationFlows.createOrLoadApp(pageCase.scenarioConfig);
-          console.log(`  >> Scenario "${pageCase.scenario}" executed successfully. Landed on app page.`);
+          await appCreationFlows.createOrLoadApp(testCase.scenarioConfig);
+          console.log(`  >> Scenario "${testCase.scenario}" executed successfully. Landed on app page.`);
         } else {
-          throw new Error(`Scenario "${pageCase.scenario}" is defined but scenarioConfig is missing in test data.`);
+          throw new Error(`Scenario "${testCase.scenario}" is defined but scenarioConfig is missing in test data.`);
         }
       }
+      // -----------------------------------------------------------------------
 
-      if (pageCase.path || pageCase.url) {
-        const targetUrl = buildTargetUrl(pageCase, testData);
+      if (testCase.path || testCase.url) {
+        const targetUrl = buildTargetUrl(testCase, testData);
         await page.goto(targetUrl, {
           waitUntil: 'domcontentloaded',
-          timeout: pageCase.navigationTimeout ?? testData.defaults?.navigationTimeout ?? 15_000
+          timeout: testCase.navigationTimeout ?? testData.defaults?.navigationTimeout ?? 15_000
         });
       }
 
-      for (const action of pageCase.beforeValidateActions ?? []) {
+      for (const action of testCase.beforeValidateActions ?? []) {
         await test.step(` >> before validation action: ${action.type}`, async () => {
           await runAction(page, action);
         });
       }
 
-      for (const assertion of pageCase.pageAssertions ?? []) {
+      // - Execute page assertions --------------------------------------------
+      for (const assertion of testCase.pageAssertions ?? []) {
         console.log(`Running page assertion: ${assertion.type}`);
 
         await test.step(` >> page assertion: ${assertion.type}`, async () => {
-          await runPageAssertion(page, pageCase, assertion);
+          await runPageAssertion(page, testCase, assertion);
         });
       }
+      // ----------------------------------------------------------------------
 
-      await runValidations(page, pageCase, pageCase.validations ?? []);
+      await runValidations(page, testCase, testCase.validations ?? []);
 
-      await runPageActions(page, pageCase, pageCase.pageActions ?? []);
+      await runPageActions(page, testCase, testCase.pageActions ?? []);
     });
   });
 }

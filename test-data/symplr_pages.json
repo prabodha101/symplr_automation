@@ -15,6 +15,7 @@
     "importFromFigmaButton": "Import from Figma",
     "startBuildingButton": "Start Building",
     "createFromTemplateText": "Create from Template",
+    "downloadAppDefinitionButtonText": "Download App Definition",
     "blueprintText": "Blueprint",
     "startNodeText": "Start",
     "screensText": "Screens",
@@ -324,6 +325,14 @@
         "params": {
           "text": "${tokens.startNodeText}"
         }
+      },
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "${tokens.downloadAppDefinitionButtonText} button",
+          "locator": "div[aria-label=\"${tokens.downloadAppDefinitionButtonText}\"]",
+          "timeout": 30000
+        }
       }
     ],
     "pagesScreen": [
@@ -418,6 +427,16 @@
         "params": {
           "name": "App Bar & Nav Bar",
           "first": true
+        }
+      }
+    ],
+    "appDefinitionValidation": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "${tokens.downloadAppDefinitionButtonText} button",
+          "locator": "div[aria-label=\"${tokens.downloadAppDefinitionButtonText}\"]",
+          "timeout": 30000
         }
       }
     ]
@@ -1101,6 +1120,30 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Download and validate appDefinition",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
         }
       ]
     }
