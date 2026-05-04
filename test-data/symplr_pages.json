@@ -1,0 +1,1108 @@
+{
+  "$schema": "../schemas/testCases.schema.json",
+  "defaults": {
+    "baseUrl": "https://101studio.co/",
+    "navigationTimeout": 15000,
+    "softAssertions": false
+  },
+  "tokens": {
+    "appName": "FigmaSampleImport",
+    "figmaUrl": "https://www.figma.com/design/oqD2rTJHlIifgedF0RHIa6/Food-Couriers---Food-Delivery-App---UI-UX-Design-Case-Study--Community---Copy---Copy---Copy-?node-id=2-10659&m=dev",
+    "homePageTitle": "Symplr.io - Low-Code App Builder",
+    "dashboardUrlSegment": "/dashboard",
+    "buildAppsHeading": "Build apps with a blueprint.",
+    "speedText": "The speed of AI, with the structure to scale.",
+    "importFromFigmaButton": "Import from Figma",
+    "startBuildingButton": "Start Building",
+    "createFromTemplateText": "Create from Template",
+    "blueprintText": "Blueprint",
+    "startNodeText": "Start",
+    "screensText": "Screens",
+    "themesText": "Themes"
+  },
+  "validationTemplates": {
+    "elementIsVisibleById": {
+      "name": "Validate '${param.name}' is visible",
+      "locator": {
+        "strategy": "id",
+        "id": "${param.id}"
+      },
+      "assertions": [
+        {
+          "type": "visible"
+        }
+      ]
+    },
+    "textIsVisibleById": {
+      "name": "Validate '${param.text}' text is visible",
+      "locator": {
+        "strategy": "id",
+        "id": "${param.id}"
+      },
+      "assertions": [
+        {
+          "type": "visible"
+        },
+        {
+          "type": "textEquals",
+          "expected": "${param.text}"
+        }
+      ]
+    },
+    "headingIsVisibleByText_OLD": {
+      "name": "Validate '${param.text}' heading is visible",
+      "locator": {
+        "strategy": "role",
+        "role": "heading",
+        "name": "${param.text}",
+        "level": "${param.level}",
+        "exact": true
+      },
+      "assertions": [
+        {
+          "type": "visible"
+        }
+      ]
+    },
+    "headingIsVisibleByText": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.text}' heading is visible",
+        "locator": {
+          "strategy": "role",
+          "role": "heading",
+          "name": "${param.text}",
+          "level": "${param.level}",
+          "exact": true
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "textIsVisible_OLD": {
+      "name": "Validate '${param.text}' text is visible",
+      "locator": {
+        "strategy": "text",
+        "text": "${param.text}",
+        "exact": true
+      },
+      "assertions": [
+        {
+          "type": "visible"
+        }
+      ]
+    },
+    "textIsVisible": {
+      "defaults": {
+        "timeout": 5000,
+        "nth": 0
+      },
+      "template": {
+        "name": "Validate '${param.text}' text is visible",
+        "locator": {
+          "strategy": "text",
+          "text": "${param.text}",
+          "exact": true,
+          "nth": "${param.nth}"
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "buttonIsVisible": {
+      "defaults": {
+        "timeout": 5000,
+        "first": false
+      },
+      "template": {
+        "name": "Validate '${param.name}' button is visible",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "${param.name}",
+          "exact": true,
+          "first": "${params.first}"
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "assertElementByRole": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' ${param.role} is ${param.assertion}",
+        "locator": {
+          "strategy": "role",
+          "role": "${param.role}",
+          "name": "${param.name}",
+          "exact": true
+        },
+        "assertions": [
+          {
+            "type": "${param.assertion}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "checkboxStateById": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' checkbox is ${param.assertion}",
+        "locator": {
+          "strategy": "id",
+          "id": "${param.id}"
+        },
+        "assertions": [
+          {
+            "type": "${param.assertion}"
+          }
+        ]
+      }
+    },
+    "elementIsVisibleByLocator": {
+      "defaults": {
+        "timeout": 5000,
+        "first": false
+      },
+      "template": {
+        "name": "Validate '${param.name}' is visible",
+        "locator": {
+            "strategy": "locator",
+            "locator": "${param.locator}",
+            "first": "${params.first}"
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "textIsVisibleByLocator": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' text equals '${param.text}'",
+        "locator": "${param.locator}",
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          },
+          {
+            "type": "textEquals",
+            "expected": "${param.text}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "validateElementState": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' is ${param.assertion}",
+        "locator": "${param.locator}",
+        "assertions": [
+          {
+            "type": "${param.assertion}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "validateElementStateByLocator": {
+      "defaults": {
+        "timeout": 5000,
+        "nth": 0
+      },
+      "template": {
+        "name": "Validate '${param.name}' is ${param.assertion}",
+        "locator": {
+          "strategy": "locator",
+          "locator": "${param.locator}",
+          "nth": "${param.nth}"
+        },
+        "assertions": [
+          {
+            "type": "${param.assertion}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "elementValueIsEquals": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' value equals '${param.value}'",
+        "locator": "${param.locator}",
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          },
+          {
+            "type": "valueEquals",
+            "expected": "${param.value}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "countGreaterThanElementByLocator": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' count is greater than ${param.expected}",
+        "locator": {
+          "strategy": "locator",
+          "locator": "${param.locator}"
+        },
+        "assertions": [
+          {
+            "type": "countGreaterThan",
+            "expected": "${param.expected}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "countGreaterThanElement": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' count is greater than ${param.expected}",
+        "locator": "${param.locator}",
+        "assertions": [
+          {
+            "type": "countGreaterThan",
+            "expected": "${param.expected}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    }
+  },
+  "validationSets": {
+    "blueprintScreen": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "${tokens.blueprintText} label",
+          "locator": "p:has-text(\"${tokens.blueprintText}\")",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "${tokens.startNodeText}"
+        }
+      }
+    ],
+    "pagesScreen": [
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "${tokens.screensText}",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "countGreaterThanElementByLocator",
+        "params": {
+          "name": "Screens list",
+          "locator": "div.Screens-list-item.MuiBox-root",
+          "expected": 0,
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "First Screen",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "Enable Nav Bar"
+        }
+      }
+    ],
+    "themesScreen": [
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "${tokens.themesText}",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Add"
+        }
+      }
+    ],
+    "variablesScreen": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "Variables label",
+          "locator": "p:has-text(\"Variables\")",
+          "timeout": 30000
+        }
+      }
+    ],
+    "settingsScreen": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "App Assets heading",
+          "locator": "p:has-text(\"App Assets\")",
+          "first": true,
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "App Assets",
+          "first": true
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "App Details",
+          "first": true
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Security",
+          "first": true
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "App Bar & Nav Bar",
+          "first": true
+        }
+      }
+    ]
+  },
+  "testCases": [
+    {
+      "name": "Home page loads correctly",
+      "enabled": true,
+      "path": "/",
+      "pageAssertions": [
+        {
+          "type": "titleContains",
+          "expected": "${tokens.homePageTitle}"
+        },
+        {
+          "type": "urlContains",
+          "expected": "${tokens.dashboardUrlSegment}"
+        }
+      ],
+      "validations": [
+        {
+          "$template": "headingIsVisibleByText",
+          "params": {
+            "text": "${tokens.buildAppsHeading}",
+            "level": 1
+          }
+        },
+        {
+          "$template": "textIsVisible",
+          "params": {
+            "text": "${tokens.speedText}"
+          }
+        },
+        {
+          "$template": "buttonIsVisible",
+          "params": {
+            "name": "${tokens.importFromFigmaButton}"
+          }
+        },
+        {
+          "$template": "buttonIsVisible",
+          "params": {
+            "name": "${tokens.startBuildingButton}"
+          }
+        },
+        {
+          "$template": "assertElementByRole",
+          "params": {
+            "role": "button",
+            "name": "${tokens.startBuildingButton}",
+            "assertion": "disabled"
+          }
+        },
+        {
+          "$template": "textIsVisible",
+          "params": {
+            "text": "${tokens.createFromTemplateText}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Existing app loads correctly",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Create app using Figma",
+      "enabled": true,
+      "scenario": "figma",
+      "scenarioConfig": {
+        "type": "figma",
+        "figmaUrl": "${tokens.figmaUrl}",
+        "figmaAppName": "${tokens.appName}"
+      },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Storyboard validation: Validate 'Blueprint' option",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Storyboard validation: Validate 'Pages' option",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Pages\"]"
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "pagesScreen"
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "first page preview screen",
+            "locator": "#PreviewScreen-main"
+          }
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "#PreviewScreen-main"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Storyboard validation: Validate 'Themes' option",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Themes\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "themesScreen"
+        }
+      ]
+    },
+    {
+      "name": "Storyboard validation: Validate 'Variables' option",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Variables\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "variablesScreen"
+        }
+      ]
+    },
+    {
+      "name": "Storyboard validation: Validate 'Settings' option",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Settings\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "settingsScreen"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Assets",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Assets",
+                "nth": 1
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Launcher Icon"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Details",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Details",
+                "nth": 1
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Advance Settings"
+              }
+            },
+            {
+              "$template": "elementValueIsEquals",
+              "params": {
+                "name": "App Name",
+                "locator": {
+                  "strategy": "role",
+                  "role": "textbox",
+                  "name": "name"
+                },
+                "value": "${tokens.appName}"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Security",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Simulation Detection checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 0,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Screen Capture Detection checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 1,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Root Device Detection checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 2,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Jailbreak Device Detection checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 3,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Disable Native Console Logging checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 4,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Security",
+                "nth": 1
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Simulation Detection"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Simulation Detection helps protect your app by identifying if it’s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Screen Capture Detection"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Screen Capture helps safeguard sensitive content in your app by detecting and preventing screenshots or screen recordings, protecting user privacy and data."
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Root Device Detection"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Root Device Detection helps protect your app by detecting if it’s running on a rooted device, reducing the risk of data breaches and unauthorized access."
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Jailbreak Device Detection"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Jailbreak Device Detection helps protect your app by identifying if it's running on a jailbroken device, which can expose it to security threats and unauthorized access."
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Disable Native Console Logging"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device’s console, helping protect against data leaks and improving overall app security."
+              }
+            }
+          ],
+          "pageActions": [
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 0
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Simulation Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 0
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 0
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Simulation Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 0
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 1
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Screen Capture Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 1
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 1
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Screen Capture Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 1
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 2
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Root Device Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 2
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 2
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Root Device Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 2
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 3
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Jailbreak Device Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 3
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 3
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Jailbreak Device Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 3
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 4
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Disable Native Console Logging checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 4
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 4
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Disable Native Console Logging checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 4
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Bar & Nav Bar",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Bar & Nav Bar",
+                "nth": 1
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Bar"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
