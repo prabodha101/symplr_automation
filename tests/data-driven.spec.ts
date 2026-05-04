@@ -1,27 +1,31 @@
-import { test, expect, type Locator, type Page } from './fixtures/app-fixtures';
-import fs from 'node:fs';
-import path from 'node:path';
-import { AppCreationFlows } from '../workflows/AppCreationFlows';
-import type { AppSource } from './configs/scenarioDefinitions';
+import { test, expect, type Locator, type Page } from "./fixtures/app-fixtures";
+import type { TestInfo } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+import { AppCreationFlows } from "../workflows/AppCreationFlows";
+import type { AppSource } from "./configs/scenarioDefinitions";
+import { ProjectStoryBoardPage } from "../pages/ProjectStoryBoardPage";
 
-const dataPath = path.resolve(__dirname, '../test-data/symplr_pages.json');
-const rawTestData = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as unknown;
-const testData = resolveReusableValidations(resolveTokens(rawTestData)) as TestData;
+const dataPath = path.resolve(__dirname, "../test-data/symplr_pages.json");
+const rawTestData = JSON.parse(fs.readFileSync(dataPath, "utf-8")) as unknown;
+const testData = resolveReusableValidations(
+  resolveTokens(rawTestData),
+) as TestData;
 
 type LocatorConfig = {
   strategy:
-    | 'id'
-    | 'role'
-    | 'text'
-    | 'label'
-    | 'placeholder'
-    | 'altText'
-    | 'title'
-    | 'testId'
-    | 'css'
-    | 'xpath'
-    | 'locator'
-    | 'custom';
+    | "id"
+    | "role"
+    | "text"
+    | "label"
+    | "placeholder"
+    | "altText"
+    | "title"
+    | "testId"
+    | "css"
+    | "xpath"
+    | "locator"
+    | "custom";
   id?: string;
   selector?: string;
   text?: string;
@@ -36,40 +40,56 @@ type LocatorConfig = {
   last?: boolean;
   locator?: string;
   value?: string;
-  engine?: 'css' | 'xpath' | 'playwright';
+  engine?: "css" | "xpath" | "playwright";
 };
 
 type ActionConfig = {
-  type: 'click' | 'fill' | 'check' | 'uncheck' | 'hover' | 'press' | 'selectOption';
+  type:
+    | "click"
+    | "fill"
+    | "check"
+    | "uncheck"
+    | "hover"
+    | "press"
+    | "selectOption"
+    | "download"
+    | "downloadAppDefinition";
+  name?: string;
   value?: string | number | boolean;
   locator?: LocatorConfig;
   validations?: ValidationConfig[];
   pageActions?: ActionConfig[];
+  expectedExtension?: string;
+  expectedFileNameContains?: string;
+  validateJson?: boolean;
+  minBytes?: number;
+  saveAs?: string;
+  timeout?: number;
 };
 
 type AssertionConfig = {
   type:
-    | 'visible'
-    | 'hidden'
-    | 'attached'
-    | 'enabled'
-    | 'disabled'
-    | 'editable'
-    | 'checked'
-    | 'unchecked'
-    | 'empty'
-    | 'textEquals'
-    | 'textContains'
-    | 'valueEquals'
-    | 'attributeEquals'
-    | 'countEquals'
-    | 'countGreaterThan'
-    | 'classContains'
-    | 'cssEquals'
-    | 'titleEquals'
-    | 'titleContains'
-    | 'urlEquals'
-    | 'urlContains';
+    | "visible"
+    | "hidden"
+    | "attached"
+    | "enabled"
+    | "disabled"
+    | "editable"
+    | "checked"
+    | "unchecked"
+    | "empty"
+    | "textEquals"
+    | "textContains"
+    | "valueEquals"
+    | "attributeEquals"
+    | "countEquals"
+    | "countGreaterThan"
+    | "classContains"
+    | "cssEquals"
+    | "titleEquals"
+    | "titleContains"
+    | "urlEquals"
+    | "urlContains";
   expected?: string | number | boolean;
   expectedRegex?: string;
   flags?: string;
@@ -95,7 +115,10 @@ type ValidationTemplateRef = {
   params?: Record<string, unknown>;
 };
 
-type ValidationListItem = ValidationConfig | ValidationRef | ValidationTemplateRef;
+type ValidationListItem =
+  | ValidationConfig
+  | ValidationRef
+  | ValidationTemplateRef;
 
 type ValidationTemplateDefinition =
   | ValidationConfig
@@ -134,13 +157,15 @@ type TestData = {
 };
 
 function resolveTokens(value: unknown): unknown {
-  if (value === null || typeof value !== 'object') {
+  if (value === null || typeof value !== "object") {
     return value;
   }
 
   const root = value as Record<string, unknown>;
-  const tokens = Object.entries(root.tokens ?? {}).reduce<Record<string, string>>((acc, [key, tokenValue]) => {
-    if (typeof tokenValue === 'string') {
+  const tokens = Object.entries(root.tokens ?? {}).reduce<
+    Record<string, string>
+  >((acc, [key, tokenValue]) => {
+    if (typeof tokenValue === "string") {
       acc[key] = tokenValue;
     }
     return acc;
@@ -149,12 +174,15 @@ function resolveTokens(value: unknown): unknown {
   return resolveTokenPlaceholders(value, tokens);
 }
 
-function resolveTokenPlaceholders(value: unknown, tokens: Record<string, string>): unknown {
+function resolveTokenPlaceholders(
+  value: unknown,
+  tokens: Record<string, string>,
+): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => resolveTokenPlaceholders(item, tokens));
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value.replace(/\$\{tokens\.([a-zA-Z0-9_]+)\}/g, (_, tokenKey) => {
       if (!(tokenKey in tokens)) {
         throw new Error(`Token not found: ${tokenKey}`);
@@ -163,9 +191,12 @@ function resolveTokenPlaceholders(value: unknown, tokens: Record<string, string>
     });
   }
 
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === "object" && value !== null) {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, resolveTokenPlaceholders(item, tokens)])
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        resolveTokenPlaceholders(item, tokens),
+      ]),
     );
   }
 
@@ -173,50 +204,60 @@ function resolveTokenPlaceholders(value: unknown, tokens: Record<string, string>
 }
 
 function resolveReusableValidations(value: unknown): unknown {
-  if (value === null || typeof value !== 'object') {
+  if (value === null || typeof value !== "object") {
     return value;
   }
 
   const root = value as Record<string, unknown>;
   const validationSets = (root.validationSets ?? {}) as Record<string, unknown>;
-  const validationTemplates = (root.validationTemplates ?? {}) as Record<string, unknown>;
+  const validationTemplates = (root.validationTemplates ?? {}) as Record<
+    string,
+    unknown
+  >;
   const cases = Array.isArray(root.testCases) ? root.testCases : root.pages;
 
   if (!Array.isArray(cases)) {
     return value;
   }
 
-  const resolvedTestCases = cases.map((page) => resolvePageCaseReusableItems(page, validationSets, validationTemplates));
+  const resolvedTestCases = cases.map((page) =>
+    resolvePageCaseReusableItems(page, validationSets, validationTemplates),
+  );
 
   return {
     ...root,
-    testCases: resolvedTestCases
+    testCases: resolvedTestCases,
   };
 }
 
 function resolvePageCaseReusableItems(
   page: unknown,
   validationSets: Record<string, unknown>,
-  validationTemplates: Record<string, unknown>
+  validationTemplates: Record<string, unknown>,
 ): unknown {
-  if (page === null || typeof page !== 'object') return page;
+  if (page === null || typeof page !== "object") return page;
 
   const pageObj = { ...(page as Record<string, unknown>) };
 
   if (Array.isArray(pageObj.beforeValidateActions)) {
-    pageObj.beforeValidateActions = pageObj.beforeValidateActions.map((action) =>
-      resolveActionReusableItems(action, validationSets, validationTemplates)
+    pageObj.beforeValidateActions = pageObj.beforeValidateActions.map(
+      (action) =>
+        resolveActionReusableItems(action, validationSets, validationTemplates),
     );
   }
 
   if (Array.isArray(pageObj.pageActions)) {
     pageObj.pageActions = pageObj.pageActions.map((action) =>
-      resolveActionReusableItems(action, validationSets, validationTemplates)
+      resolveActionReusableItems(action, validationSets, validationTemplates),
     );
   }
 
   if (Array.isArray(pageObj.validations)) {
-    pageObj.validations = resolveValidationItems(pageObj.validations, validationSets, validationTemplates);
+    pageObj.validations = resolveValidationItems(
+      pageObj.validations,
+      validationSets,
+      validationTemplates,
+    );
   }
 
   return pageObj;
@@ -225,19 +266,27 @@ function resolvePageCaseReusableItems(
 function resolveActionReusableItems(
   action: unknown,
   validationSets: Record<string, unknown>,
-  validationTemplates: Record<string, unknown>
+  validationTemplates: Record<string, unknown>,
 ): unknown {
-  if (action === null || typeof action !== 'object') return action;
+  if (action === null || typeof action !== "object") return action;
 
   const actionObj = { ...(action as Record<string, unknown>) };
 
   if (Array.isArray(actionObj.validations)) {
-    actionObj.validations = resolveValidationItems(actionObj.validations, validationSets, validationTemplates);
+    actionObj.validations = resolveValidationItems(
+      actionObj.validations,
+      validationSets,
+      validationTemplates,
+    );
   }
 
   if (Array.isArray(actionObj.pageActions)) {
     actionObj.pageActions = actionObj.pageActions.map((nestedAction) =>
-      resolveActionReusableItems(nestedAction, validationSets, validationTemplates)
+      resolveActionReusableItems(
+        nestedAction,
+        validationSets,
+        validationTemplates,
+      ),
     );
   }
 
@@ -247,30 +296,47 @@ function resolveActionReusableItems(
 function resolveValidationItems(
   validations: unknown[],
   validationSets: Record<string, unknown>,
-  validationTemplates: Record<string, unknown>
+  validationTemplates: Record<string, unknown>,
 ): unknown[] {
-  return validations.flatMap((item) => resolveValidationItem(item, validationSets, validationTemplates));
+  return validations.flatMap((item) =>
+    resolveValidationItem(item, validationSets, validationTemplates),
+  );
 }
 
 function resolveValidationItem(
   item: unknown,
   validationSets: Record<string, unknown>,
-  validationTemplates: Record<string, unknown>
+  validationTemplates: Record<string, unknown>,
 ): unknown[] {
   if (isValidationRef(item)) {
-    return resolveValidationRef(item.$ref, validationSets).flatMap((resolvedItem) =>
-      resolveValidationItem(resolvedItem, validationSets, validationTemplates)
+    return resolveValidationRef(item.$ref, validationSets).flatMap(
+      (resolvedItem) =>
+        resolveValidationItem(
+          resolvedItem,
+          validationSets,
+          validationTemplates,
+        ),
     );
   }
 
   if (isValidationTemplateRef(item)) {
-    return resolveValidationTemplate(item.$template, item.params ?? {}, validationTemplates).flatMap((resolvedItem) =>
-      resolveValidationItem(resolvedItem, validationSets, validationTemplates)
+    return resolveValidationTemplate(
+      item.$template,
+      item.params ?? {},
+      validationTemplates,
+    ).flatMap((resolvedItem) =>
+      resolveValidationItem(resolvedItem, validationSets, validationTemplates),
     );
   }
 
-  if (item !== null && typeof item === 'object') {
-    return [resolveValidationNestedReusableItems(item, validationSets, validationTemplates)];
+  if (item !== null && typeof item === "object") {
+    return [
+      resolveValidationNestedReusableItems(
+        item,
+        validationSets,
+        validationTemplates,
+      ),
+    ];
   }
 
   return [item];
@@ -279,15 +345,15 @@ function resolveValidationItem(
 function resolveValidationNestedReusableItems(
   validation: unknown,
   validationSets: Record<string, unknown>,
-  validationTemplates: Record<string, unknown>
+  validationTemplates: Record<string, unknown>,
 ): unknown {
-  if (validation === null || typeof validation !== 'object') return validation;
+  if (validation === null || typeof validation !== "object") return validation;
 
   const validationObj = { ...(validation as Record<string, unknown>) };
 
   if (Array.isArray(validationObj.actions)) {
     validationObj.actions = validationObj.actions.map((action) =>
-      resolveActionReusableItems(action, validationSets, validationTemplates)
+      resolveActionReusableItems(action, validationSets, validationTemplates),
     );
   }
 
@@ -296,24 +362,31 @@ function resolveValidationNestedReusableItems(
 
 function isValidationRef(value: unknown): value is ValidationRef {
   return (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    '$ref' in value &&
-    typeof (value as Record<string, unknown>)['$ref'] === 'string'
+    "$ref" in value &&
+    typeof (value as Record<string, unknown>)["$ref"] === "string"
   );
 }
 
-function isValidationTemplateRef(value: unknown): value is ValidationTemplateRef {
+function isValidationTemplateRef(
+  value: unknown,
+): value is ValidationTemplateRef {
   return (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    '$template' in value &&
-    typeof (value as Record<string, unknown>)['$template'] === 'string'
+    "$template" in value &&
+    typeof (value as Record<string, unknown>)["$template"] === "string"
   );
 }
 
-function resolveValidationRef(ref: string, validationSets: Record<string, unknown>): unknown[] {
-  const key = ref.startsWith('validationSets.') ? ref.slice('validationSets.'.length) : ref;
+function resolveValidationRef(
+  ref: string,
+  validationSets: Record<string, unknown>,
+): unknown[] {
+  const key = ref.startsWith("validationSets.")
+    ? ref.slice("validationSets.".length)
+    : ref;
   const setValue = validationSets[key];
 
   if (setValue === undefined) {
@@ -326,10 +399,10 @@ function resolveValidationRef(ref: string, validationSets: Record<string, unknow
 function resolveValidationTemplate(
   templateName: string,
   params: Record<string, unknown>,
-  validationTemplates: Record<string, unknown>
+  validationTemplates: Record<string, unknown>,
 ): unknown[] {
-  const key = templateName.startsWith('validationTemplates.')
-    ? templateName.slice('validationTemplates.'.length)
+  const key = templateName.startsWith("validationTemplates.")
+    ? templateName.slice("validationTemplates.".length)
     : templateName;
   const definition = validationTemplates[key];
 
@@ -342,9 +415,9 @@ function resolveValidationTemplate(
 
   if (
     definition !== null &&
-    typeof definition === 'object' &&
+    typeof definition === "object" &&
     !Array.isArray(definition) &&
-    'template' in definition
+    "template" in definition
   ) {
     const definitionObj = definition as Record<string, unknown>;
     templateValue = definitionObj.template;
@@ -352,40 +425,56 @@ function resolveValidationTemplate(
   }
 
   const mergedParams = { ...defaults, ...params };
-  const resolvedTemplate = resolveParamPlaceholders(deepClone(templateValue), mergedParams);
+  const resolvedTemplate = resolveParamPlaceholders(
+    deepClone(templateValue),
+    mergedParams,
+  );
 
-  return Array.isArray(resolvedTemplate) ? resolvedTemplate : [resolvedTemplate];
+  return Array.isArray(resolvedTemplate)
+    ? resolvedTemplate
+    : [resolvedTemplate];
 }
 
-function resolveParamPlaceholders(value: unknown, params: Record<string, unknown>): unknown {
+function resolveParamPlaceholders(
+  value: unknown,
+  params: Record<string, unknown>,
+): unknown {
   if (Array.isArray(value)) {
     return value.map((item) => resolveParamPlaceholders(item, params));
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const exactMatch = value.match(/^\$\{params?\.([a-zA-Z0-9_.]+)\}$/);
     if (exactMatch) {
       return getTemplateParam(params, exactMatch[1]);
     }
 
-    return value.replace(/\$\{params?\.([a-zA-Z0-9_.]+)\}/g, (_, paramKey) => String(getTemplateParam(params, paramKey)));
+    return value.replace(/\$\{params?\.([a-zA-Z0-9_.]+)\}/g, (_, paramKey) =>
+      String(getTemplateParam(params, paramKey)),
+    );
   }
 
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === "object" && value !== null) {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, resolveParamPlaceholders(item, params)])
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        resolveParamPlaceholders(item, params),
+      ]),
     );
   }
 
   return value;
 }
 
-function getTemplateParam(params: Record<string, unknown>, key: string): unknown {
-  const pathParts = key.split('.');
+function getTemplateParam(
+  params: Record<string, unknown>,
+  key: string,
+): unknown {
+  const pathParts = key.split(".");
   let current: unknown = params;
 
   for (const part of pathParts) {
-    if (current === null || typeof current !== 'object' || !(part in current)) {
+    if (current === null || typeof current !== "object" || !(part in current)) {
       throw new Error(`Template parameter not found: ${key}`);
     }
     current = (current as Record<string, unknown>)[part];
@@ -398,9 +487,13 @@ function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-for (const testCase of testData.testCases.filter((item) => item.enabled !== false)) {
+for (const testCase of testData.testCases.filter(
+  (item) => item.enabled !== false,
+)) {
   test.describe(testCase.name, () => {
-    test(`validates configured checks for ${testCase.name}`, async ({ page }) => {
+    test(`validates configured checks for ${testCase.name}`, async ({
+      page,
+    }, testInfo) => {
       console.log(`>-- Running test case : ${testCase.name}`);
 
       // - Execute the scenario ('Prompt', 'Figma', 'Template', 'Existing App')
@@ -409,9 +502,13 @@ for (const testCase of testData.testCases.filter((item) => item.enabled !== fals
         if (testCase.scenarioConfig) {
           const appCreationFlows = new AppCreationFlows(page);
           await appCreationFlows.createOrLoadApp(testCase.scenarioConfig);
-          console.log(`  >> Scenario "${testCase.scenario}" executed successfully. Landed on app page.`);
+          console.log(
+            `  >> Scenario "${testCase.scenario}" executed successfully. Landed on app page.`,
+          );
         } else {
-          throw new Error(`Scenario "${testCase.scenario}" is defined but scenarioConfig is missing in test data.`);
+          throw new Error(
+            `Scenario "${testCase.scenario}" is defined but scenarioConfig is missing in test data.`,
+          );
         }
       }
       // -----------------------------------------------------------------------
@@ -419,14 +516,17 @@ for (const testCase of testData.testCases.filter((item) => item.enabled !== fals
       if (testCase.path || testCase.url) {
         const targetUrl = buildTargetUrl(testCase, testData);
         await page.goto(targetUrl, {
-          waitUntil: 'domcontentloaded',
-          timeout: testCase.navigationTimeout ?? testData.defaults?.navigationTimeout ?? 15_000
+          waitUntil: "domcontentloaded",
+          timeout:
+            testCase.navigationTimeout ??
+            testData.defaults?.navigationTimeout ??
+            15_000,
         });
       }
 
       for (const action of testCase.beforeValidateActions ?? []) {
         await test.step(` >> before validation action: ${action.type}`, async () => {
-          await runAction(page, action);
+          await runAction(page, action, undefined, testInfo);
         });
       }
 
@@ -440,14 +540,29 @@ for (const testCase of testData.testCases.filter((item) => item.enabled !== fals
       }
       // ----------------------------------------------------------------------
 
-      await runValidations(page, testCase, testCase.validations ?? []);
+      await runValidations(
+        page,
+        testCase,
+        testCase.validations ?? [],
+        testInfo,
+      );
 
-      await runPageActions(page, testCase, testCase.pageActions ?? []);
+      await runPageActions(
+        page,
+        testCase,
+        testCase.pageActions ?? [],
+        testInfo,
+      );
     });
   });
 }
 
-async function runValidations(page: Page, pageCase: PageCase, validations: ValidationConfig[]): Promise<void> {
+async function runValidations(
+  page: Page,
+  pageCase: PageCase,
+  validations: ValidationConfig[],
+  testInfo: TestInfo,
+): Promise<void> {
   for (const validation of validations) {
     console.log(` >> Running validation: ${validation.name}`);
 
@@ -455,7 +570,7 @@ async function runValidations(page: Page, pageCase: PageCase, validations: Valid
       const locator = buildLocator(page, validation.locator);
 
       for (const action of validation.actions ?? []) {
-        await runAction(page, action, locator);
+        await runAction(page, action, locator, testInfo);
       }
 
       for (const assertion of validation.assertions) {
@@ -465,14 +580,19 @@ async function runValidations(page: Page, pageCase: PageCase, validations: Valid
   }
 }
 
-async function runPageActions(page: Page, pageCase: PageCase, actions: ActionConfig[]): Promise<void> {
+async function runPageActions(
+  page: Page,
+  pageCase: PageCase,
+  actions: ActionConfig[],
+  testInfo: TestInfo,
+): Promise<void> {
   for (const action of actions) {
-    await test.step(` >> Page action: ${action.type}`, async () => {
-      await runAction(page, action);
+    await test.step(` >> Page action: ${action.name ?? action.type}`, async () => {
+      await runAction(page, action, undefined, testInfo);
     });
 
-    await runValidations(page, pageCase, action.validations ?? []);
-    await runPageActions(page, pageCase, action.pageActions ?? []);
+    await runValidations(page, pageCase, action.validations ?? [], testInfo);
+    await runPageActions(page, pageCase, action.pageActions ?? [], testInfo);
   }
 }
 
@@ -481,89 +601,124 @@ function buildTargetUrl(pageCase: PageCase, data: TestData): string {
 
   const baseUrl = pageCase.baseUrl ?? data.defaults?.baseUrl;
   if (!baseUrl) {
-    throw new Error(`Page "${pageCase.name}" must define either url or path with defaults.baseUrl.`);
+    throw new Error(
+      `Page "${pageCase.name}" must define either url or path with defaults.baseUrl.`,
+    );
   }
 
-  return new URL(pageCase.path ?? '/', baseUrl).toString();
+  return new URL(pageCase.path ?? "/", baseUrl).toString();
 }
 
 function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
   let locator: Locator;
 
   switch (locatorConfig.strategy) {
-    case 'id': {
+    case "id": {
       if (!locatorConfig.id) throw new Error('id locator requires "id".');
-      locator = page.locator(`[id="${escapeCssAttributeValue(locatorConfig.id)}"]`);
+      locator = page.locator(
+        `[id="${escapeCssAttributeValue(locatorConfig.id)}"]`,
+      );
       break;
     }
-    case 'role': {
+    case "role": {
       if (!locatorConfig.role) throw new Error('role locator requires "role".');
-      locator = page.getByRole(locatorConfig.role as never, {
-        name: locatorConfig.name,
-        exact: locatorConfig.exact,
-        level: locatorConfig.level
-      } as never);
+      locator = page.getByRole(
+        locatorConfig.role as never,
+        {
+          name: locatorConfig.name,
+          exact: locatorConfig.exact,
+          level: locatorConfig.level,
+        } as never,
+      );
       break;
     }
-    case 'text': {
+    case "text": {
       if (!locatorConfig.text) throw new Error('text locator requires "text".');
       if (locatorConfig.role) {
-        locator = page.getByRole(locatorConfig.role as never, {
-          name: locatorConfig.name ?? locatorConfig.text,
-          exact: locatorConfig.exact,
-          level: locatorConfig.level
-        } as never);
+        locator = page.getByRole(
+          locatorConfig.role as never,
+          {
+            name: locatorConfig.name ?? locatorConfig.text,
+            exact: locatorConfig.exact,
+            level: locatorConfig.level,
+          } as never,
+        );
       } else {
-        locator = page.getByText(locatorConfig.text, { exact: locatorConfig.exact });
+        locator = page.getByText(locatorConfig.text, {
+          exact: locatorConfig.exact,
+        });
       }
       break;
     }
-    case 'label': {
-      if (!locatorConfig.text) throw new Error('label locator requires "text".');
-      locator = page.getByLabel(locatorConfig.text, { exact: locatorConfig.exact });
+    case "label": {
+      if (!locatorConfig.text)
+        throw new Error('label locator requires "text".');
+      locator = page.getByLabel(locatorConfig.text, {
+        exact: locatorConfig.exact,
+      });
       break;
     }
-    case 'placeholder': {
-      if (!locatorConfig.text) throw new Error('placeholder locator requires "text".');
-      locator = page.getByPlaceholder(locatorConfig.text, { exact: locatorConfig.exact });
+    case "placeholder": {
+      if (!locatorConfig.text)
+        throw new Error('placeholder locator requires "text".');
+      locator = page.getByPlaceholder(locatorConfig.text, {
+        exact: locatorConfig.exact,
+      });
       break;
     }
-    case 'altText': {
-      if (!locatorConfig.text) throw new Error('altText locator requires "text".');
-      locator = page.getByAltText(locatorConfig.text, { exact: locatorConfig.exact });
+    case "altText": {
+      if (!locatorConfig.text)
+        throw new Error('altText locator requires "text".');
+      locator = page.getByAltText(locatorConfig.text, {
+        exact: locatorConfig.exact,
+      });
       break;
     }
-    case 'title': {
-      if (!locatorConfig.text) throw new Error('title locator requires "text".');
-      locator = page.getByTitle(locatorConfig.text, { exact: locatorConfig.exact });
+    case "title": {
+      if (!locatorConfig.text)
+        throw new Error('title locator requires "text".');
+      locator = page.getByTitle(locatorConfig.text, {
+        exact: locatorConfig.exact,
+      });
       break;
     }
-    case 'testId': {
-      if (!locatorConfig.testId) throw new Error('testId locator requires "testId".');
+    case "testId": {
+      if (!locatorConfig.testId)
+        throw new Error('testId locator requires "testId".');
       locator = page.getByTestId(locatorConfig.testId);
       break;
     }
-    case 'css': {
-      if (!locatorConfig.selector) throw new Error('css locator requires "selector".');
-      locator = page.locator(locatorConfig.selector, { hasText: locatorConfig.hasText });
+    case "css": {
+      if (!locatorConfig.selector)
+        throw new Error('css locator requires "selector".');
+      locator = page.locator(locatorConfig.selector, {
+        hasText: locatorConfig.hasText,
+      });
       break;
     }
-    case 'xpath': {
-      if (!locatorConfig.selector) throw new Error('xpath locator requires "selector".');
+    case "xpath": {
+      if (!locatorConfig.selector)
+        throw new Error('xpath locator requires "selector".');
       locator = page.locator(`xpath=${locatorConfig.selector}`);
       break;
     }
-    case 'locator': {
-      if (!locatorConfig.locator) throw new Error('locator strategy requires "locator".');
+    case "locator": {
+      if (!locatorConfig.locator)
+        throw new Error('locator strategy requires "locator".');
       locator = page.locator(locatorConfig.locator);
       break;
     }
-    case 'custom': {
-      const customLocator = locatorConfig.locator ?? locatorConfig.selector ?? locatorConfig.value;
-      if (!customLocator) throw new Error('custom locator strategy requires "locator", "selector", or "value".');
-      const selector = locatorConfig.engine === 'xpath' && !customLocator.startsWith('xpath=')
-        ? `xpath=${customLocator}`
-        : customLocator;
+    case "custom": {
+      const customLocator =
+        locatorConfig.locator ?? locatorConfig.selector ?? locatorConfig.value;
+      if (!customLocator)
+        throw new Error(
+          'custom locator strategy requires "locator", "selector", or "value".',
+        );
+      const selector =
+        locatorConfig.engine === "xpath" && !customLocator.startsWith("xpath=")
+          ? `xpath=${customLocator}`
+          : customLocator;
       locator = page.locator(selector);
       break;
     }
@@ -580,33 +735,61 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
   return locator;
 }
 
-async function runAction(page: Page, action: ActionConfig, defaultLocator?: Locator): Promise<void> {
-  const locator = action.locator ? buildLocator(page, action.locator) : defaultLocator;
-  if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
+async function runAction(
+  page: Page,
+  action: ActionConfig,
+  defaultLocator?: Locator,
+  testInfo?: TestInfo,
+): Promise<void> {
+  const locator = action.locator
+    ? buildLocator(page, action.locator)
+    : defaultLocator;
 
   switch (action.type) {
-    case 'click':
+    case "click":
+      if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
       await locator.click();
       return;
-    case 'fill':
-      await locator.fill(String(action.value ?? ''));
+    case "fill":
+      if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
+      await locator.fill(String(action.value ?? ""));
       return;
-    case 'check':
+    case "check":
+      if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
       await locator.check();
       return;
-    case 'uncheck':
+    case "uncheck":
+      if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
       await locator.uncheck();
       return;
-    case 'hover':
+    case "hover":
+      if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
       await locator.hover();
       return;
-    case 'press':
-      if (!action.value) throw new Error('press action requires "value", for example "Enter".');
+    case "press":
+      if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
+      if (!action.value)
+        throw new Error('press action requires "value", for example "Enter".');
       await locator.press(String(action.value));
       return;
-    case 'selectOption':
-      if (action.value === undefined) throw new Error('selectOption action requires "value".');
+    case "selectOption":
+      if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
+      if (action.value === undefined)
+        throw new Error('selectOption action requires "value".');
       await locator.selectOption(String(action.value));
+      return;
+    case "download":
+      if (!locator) throw new Error("download action requires a locator.");
+      if (!testInfo)
+        throw new Error("download action requires Playwright testInfo.");
+      await runGenericDownloadAction(page, locator, action, testInfo);
+      return;
+    case "downloadAppDefinition":
+      if (!testInfo)
+        throw new Error(
+          "downloadAppDefinition action requires Playwright testInfo.",
+        );
+      await runDownloadAppDefinitionAction(page, action, testInfo);
       return;
     default: {
       const unknown: never = action.type;
@@ -615,26 +798,118 @@ async function runAction(page: Page, action: ActionConfig, defaultLocator?: Loca
   }
 }
 
-async function runPageAssertion(page: Page, pageCase: PageCase, assertion: AssertionConfig): Promise<void> {
-  const assertionExpect = shouldUseSoftAssertion(pageCase, assertion) ? expect.soft : expect;
+async function runGenericDownloadAction(
+  page: Page,
+  locator: Locator,
+  action: ActionConfig,
+  testInfo: TestInfo,
+): Promise<void> {
+  const timeout = action.timeout ?? 30_000;
+  const downloadPromise = page.waitForEvent("download", { timeout });
+  await locator.click();
+
+  const download = await downloadPromise;
+  const suggestedFilename = download.suggestedFilename();
+  const downloadedFilePath = testInfo.outputPath(
+    action.saveAs ?? suggestedFilename,
+  );
+  await download.saveAs(downloadedFilePath);
+
+  validateDownloadedFile(downloadedFilePath, suggestedFilename, action);
+}
+
+async function runDownloadAppDefinitionAction(
+  page: Page,
+  action: ActionConfig,
+  testInfo: TestInfo,
+): Promise<void> {
+  const storyboardPage = new ProjectStoryBoardPage(page);
+  const downloadedFilePath =
+    await storyboardPage.downloadAppDefinition(testInfo);
+  const suggestedFilename = path.basename(downloadedFilePath);
+
+  validateDownloadedFile(downloadedFilePath, suggestedFilename, action);
+}
+
+function validateDownloadedFile(
+  downloadedFilePath: string,
+  suggestedFilename: string,
+  action: ActionConfig,
+): void {
+  expect(
+    fs.existsSync(downloadedFilePath),
+    `Downloaded file exists: ${downloadedFilePath}`,
+  ).toBe(true);
+
+  const fileStats = fs.statSync(downloadedFilePath);
+  const minBytes = action.minBytes ?? 1;
+  expect(
+    fileStats.size,
+    `Downloaded file is at least ${minBytes} byte(s)`,
+  ).toBeGreaterThanOrEqual(minBytes);
+
+  if (action.expectedExtension) {
+    const expectedExtension = normalizeExtension(action.expectedExtension);
+    const actualExtension = path.extname(suggestedFilename).toLowerCase();
+    expect(
+      actualExtension,
+      `Downloaded file extension for ${suggestedFilename}`,
+    ).toBe(expectedExtension);
+  }
+
+  if (action.expectedFileNameContains) {
+    expect(
+      suggestedFilename,
+      `Downloaded file name contains ${action.expectedFileNameContains}`,
+    ).toContain(action.expectedFileNameContains);
+  }
+
+  if (action.validateJson) {
+    const rawContent = fs.readFileSync(downloadedFilePath, "utf-8");
+    expect(
+      () => JSON.parse(rawContent),
+      `Downloaded file is valid JSON: ${suggestedFilename}`,
+    ).not.toThrow();
+  }
+}
+
+function normalizeExtension(extension: string): string {
+  const trimmed = extension.trim().toLowerCase();
+  return trimmed.startsWith(".") ? trimmed : `.${trimmed}`;
+}
+
+async function runPageAssertion(
+  page: Page,
+  pageCase: PageCase,
+  assertion: AssertionConfig,
+): Promise<void> {
+  const assertionExpect = shouldUseSoftAssertion(pageCase, assertion)
+    ? expect.soft
+    : expect;
   const expected = expectedValue(assertion);
   const message = `[${pageCase.name}] page assertion ${assertion.type}`;
 
   switch (assertion.type) {
-    case 'titleEquals':
+    case "titleEquals":
       await assertionExpect(page, message).toHaveTitle(String(expected));
       return;
-    case 'titleContains':
-      await assertionExpect(page, message).toHaveTitle(containsPattern(String(expected)));
+    case "titleContains":
+      await assertionExpect(page, message).toHaveTitle(
+        containsPattern(String(expected)),
+      );
       return;
-    case 'urlEquals':
+    case "urlEquals":
       await assertionExpect(page, message).toHaveURL(String(expected));
       return;
-    case 'urlContains':
-      await assertionExpect(page, message).toHaveURL(containsPattern(String(expected)));
+    case "urlContains":
+      await assertionExpect(page, message).toHaveURL(
+        containsPattern(String(expected)),
+      );
       return;
     default:
-      throw new Error(`Assertion "${assertion.type}" is not a page-level assertion.`);
+      throw new Error(
+        `Assertion "${assertion.type}" is not a page-level assertion.`,
+      );
   }
 }
 
@@ -642,95 +917,153 @@ async function runLocatorAssertion(
   locator: Locator,
   pageCase: PageCase,
   validation: ValidationConfig,
-  assertion: AssertionConfig
+  assertion: AssertionConfig,
 ): Promise<void> {
-  const assertionExpect = shouldUseSoftAssertion(pageCase, assertion) ? expect.soft : expect;
+  const assertionExpect = shouldUseSoftAssertion(pageCase, assertion)
+    ? expect.soft
+    : expect;
   const message = `[${pageCase.name}] ${validation.name} -> ${assertion.type}`;
 
   switch (assertion.type) {
-    case 'visible':
-      await assertionExpect(locator, message).toBeVisible({ timeout: assertion.timeout ?? 5000 });
+    case "visible":
+      await assertionExpect(locator, message).toBeVisible({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'hidden':
-      await assertionExpect(locator, message).toBeHidden({ timeout: assertion.timeout ?? 5000 });
+    case "hidden":
+      await assertionExpect(locator, message).toBeHidden({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'attached':
-      await assertionExpect(locator, message).toBeAttached({ timeout: assertion.timeout ?? 5000 });
+    case "attached":
+      await assertionExpect(locator, message).toBeAttached({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'enabled':
-      await assertionExpect(locator, message).toBeEnabled({ timeout: assertion.timeout ?? 5000 });
+    case "enabled":
+      await assertionExpect(locator, message).toBeEnabled({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'disabled':
-      await assertionExpect(locator, message).toBeDisabled({ timeout: assertion.timeout ?? 5000 });
+    case "disabled":
+      await assertionExpect(locator, message).toBeDisabled({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'editable':
-      await assertionExpect(locator, message).toBeEditable({ timeout: assertion.timeout ?? 5000 });
+    case "editable":
+      await assertionExpect(locator, message).toBeEditable({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'checked':
-      await assertionExpect(locator, message).toBeChecked({ timeout: assertion.timeout ?? 5000 });
+    case "checked":
+      await assertionExpect(locator, message).toBeChecked({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'unchecked':
-      await assertionExpect(locator, message).not.toBeChecked({ timeout: assertion.timeout ?? 5000 });
+    case "unchecked":
+      await assertionExpect(locator, message).not.toBeChecked({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'empty':
-      await assertionExpect(locator, message).toBeEmpty({ timeout: assertion.timeout ?? 5000 });
+    case "empty":
+      await assertionExpect(locator, message).toBeEmpty({
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
-    case 'textEquals': {
+    case "textEquals": {
       const expected = expectedValue(assertion);
-      await assertionExpect(locator, message).toHaveText(expected as string | RegExp, { timeout: assertion.timeout ?? 5000 });
+      await assertionExpect(locator, message).toHaveText(
+        expected as string | RegExp,
+        { timeout: assertion.timeout ?? 5000 },
+      );
       return;
     }
-    case 'textContains': {
+    case "textContains": {
       const expected = expectedValue(assertion);
-      await assertionExpect(locator, message).toContainText(expected as string | RegExp, { timeout: assertion.timeout ?? 5000 });
+      await assertionExpect(locator, message).toContainText(
+        expected as string | RegExp,
+        { timeout: assertion.timeout ?? 5000 },
+      );
       return;
     }
-    case 'valueEquals': {
+    case "valueEquals": {
       const expected = expectedValue(assertion);
-      await assertionExpect(locator, message).toHaveValue(String(expected), { timeout: assertion.timeout ?? 5000 });
+      await assertionExpect(locator, message).toHaveValue(String(expected), {
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
     }
-    case 'attributeEquals': {
+    case "attributeEquals": {
       const expected = expectedValue(assertion);
-      if (!assertion.attributeName) throw new Error('attributeEquals requires "attributeName".');
-      await assertionExpect(locator, message).toHaveAttribute(assertion.attributeName, String(expected), { timeout: assertion.timeout ?? 5000 });
+      if (!assertion.attributeName)
+        throw new Error('attributeEquals requires "attributeName".');
+      await assertionExpect(locator, message).toHaveAttribute(
+        assertion.attributeName,
+        String(expected),
+        { timeout: assertion.timeout ?? 5000 },
+      );
       return;
     }
-    case 'countEquals': {
+    case "countEquals": {
       const expected = expectedValue(assertion);
-      await assertionExpect(locator, message).toHaveCount(Number(expected), { timeout: assertion.timeout ?? 5000 });
+      await assertionExpect(locator, message).toHaveCount(Number(expected), {
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
     }
-    case 'countGreaterThan': {
+    case "countGreaterThan": {
       const expected = expectedValue(assertion);
       const actualCount = await locator.count();
-      await assertionExpect(actualCount, message).toBeGreaterThan(Number(expected));
+      await assertionExpect(actualCount, message).toBeGreaterThan(
+        Number(expected),
+      );
       return;
     }
-    case 'classContains': {
+    case "classContains": {
       const expected = expectedValue(assertion);
-      await assertionExpect(locator, message).toContainClass(String(expected), { timeout: assertion.timeout ?? 5000 });
+      await assertionExpect(locator, message).toContainClass(String(expected), {
+        timeout: assertion.timeout ?? 5000,
+      });
       return;
     }
-    case 'cssEquals': {
+    case "cssEquals": {
       const expected = expectedValue(assertion);
       if (!assertion.cssName) throw new Error('cssEquals requires "cssName".');
-      await assertionExpect(locator, message).toHaveCSS(assertion.cssName, String(expected), { timeout: assertion.timeout ?? 5000 });
+      await assertionExpect(locator, message).toHaveCSS(
+        assertion.cssName,
+        String(expected),
+        { timeout: assertion.timeout ?? 5000 },
+      );
       return;
     }
     default:
-      throw new Error(`Assertion "${assertion.type}" is not a locator-level assertion.`);
+      throw new Error(
+        `Assertion "${assertion.type}" is not a locator-level assertion.`,
+      );
   }
 }
 
-function shouldUseSoftAssertion(pageCase: PageCase, assertion: AssertionConfig): boolean {
-  return assertion.soft ?? pageCase.softAssertions ?? testData.defaults?.softAssertions ?? false;
+function shouldUseSoftAssertion(
+  pageCase: PageCase,
+  assertion: AssertionConfig,
+): boolean {
+  return (
+    assertion.soft ??
+    pageCase.softAssertions ??
+    testData.defaults?.softAssertions ??
+    false
+  );
 }
 
-function expectedValue(assertion: AssertionConfig): string | number | boolean | RegExp {
-  if (assertion.expectedRegex) return new RegExp(assertion.expectedRegex, assertion.flags);
+function expectedValue(
+  assertion: AssertionConfig,
+): string | number | boolean | RegExp {
+  if (assertion.expectedRegex)
+    return new RegExp(assertion.expectedRegex, assertion.flags);
   if (assertion.expected === undefined) {
-    throw new Error(`Assertion "${assertion.type}" requires either "expected" or "expectedRegex".`);
+    throw new Error(
+      `Assertion "${assertion.type}" requires either "expected" or "expectedRegex".`,
+    );
   }
   return assertion.expected;
 }
@@ -740,9 +1073,9 @@ function containsPattern(value: string): RegExp {
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function escapeCssAttributeValue(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }

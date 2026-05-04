@@ -264,6 +264,56 @@ with params like:
 
 Use `validationSets` when you want to reuse a group exactly as-is. Use `validationTemplates` when the locator, expected text, value, or assertion changes per page.
 
+
+## Download actions
+
+For downloads, the runner now supports two config-driven options.
+
+### Option 1: simple Symplr-specific action
+
+Use this when you want to reuse the existing `ProjectStoryBoardPage.downloadAppDefinition()` page-object method. This keeps the JSON very small and avoids putting a fragile button locator in the data file.
+
+```json
+{
+  "type": "downloadAppDefinition",
+  "name": "Download and validate appDefinition JSON file",
+  "expectedExtension": ".json",
+  "validateJson": true,
+  "minBytes": 1
+}
+```
+
+This is the recommended option for the `Download and validate appDefinition` test case.
+
+### Option 2: generic download action
+
+Use this when another page has a normal clickable element that triggers a browser download and you want to keep it generic.
+
+```json
+{
+  "type": "download",
+  "name": "Download report JSON file",
+  "locator": {
+    "strategy": "locator",
+    "locator": "button[aria-label='Download report']"
+  },
+  "expectedExtension": ".json",
+  "validateJson": true,
+  "minBytes": 1
+}
+```
+
+Supported optional download checks:
+
+| Field | Purpose |
+|---|---|
+| `expectedExtension` | Checks the downloaded file extension, for example `.json` |
+| `expectedFileNameContains` | Checks that the downloaded file name contains a value |
+| `validateJson` | Parses the downloaded file and fails if it is not valid JSON |
+| `minBytes` | Checks that the file is not empty or below a minimum size |
+| `saveAs` | Saves the downloaded artifact using a custom file name in the Playwright test output folder |
+| `timeout` | Timeout for the generic `download` action |
+
 ## Setup
 
 Create your local environment file:

@@ -15,7 +15,7 @@ try {
 }
 
 const locatorStrategies = new Set(['id', 'role', 'text', 'label', 'placeholder', 'altText', 'title', 'testId', 'css', 'xpath', 'locator', 'custom']);
-const actions = new Set(['click', 'fill', 'check', 'uncheck', 'hover', 'press', 'selectOption']);
+const actions = new Set(['click', 'fill', 'check', 'uncheck', 'hover', 'press', 'selectOption', 'download', 'downloadAppDefinition']);
 const pageAssertions = new Set(['titleEquals', 'titleContains', 'urlEquals', 'urlContains']);
 const locatorAssertions = new Set([
   'visible',
@@ -147,7 +147,31 @@ function validateAction(prefix, action) {
   if (['fill', 'press', 'selectOption'].includes(action.type) && action.value === undefined) {
     errors.push(`${prefix}: action "${action.type}" requires value.`);
   }
+  if (action.type === 'download' && !action.locator) {
+    errors.push(`${prefix}: download action requires locator.`);
+  }
   if (action.locator) validateLocator(`${prefix}.locator`, action.locator);
+  if (action.name !== undefined && typeof action.name !== 'string') {
+    errors.push(`${prefix}: name must be a string.`);
+  }
+  if (action.expectedExtension !== undefined && typeof action.expectedExtension !== 'string') {
+    errors.push(`${prefix}: expectedExtension must be a string, for example ".json".`);
+  }
+  if (action.expectedFileNameContains !== undefined && typeof action.expectedFileNameContains !== 'string') {
+    errors.push(`${prefix}: expectedFileNameContains must be a string.`);
+  }
+  if (action.validateJson !== undefined && typeof action.validateJson !== 'boolean') {
+    errors.push(`${prefix}: validateJson must be true or false.`);
+  }
+  if (action.minBytes !== undefined && typeof action.minBytes !== 'number') {
+    errors.push(`${prefix}: minBytes must be a number.`);
+  }
+  if (action.saveAs !== undefined && typeof action.saveAs !== 'string') {
+    errors.push(`${prefix}: saveAs must be a string.`);
+  }
+  if (action.timeout !== undefined && typeof action.timeout !== 'number') {
+    errors.push(`${prefix}: timeout must be a number.`);
+  }
 
   for (const [validationIndex, validation] of (action.validations ?? []).entries()) {
     validateValidation(`${prefix}.validations[${validationIndex}]`, validation);

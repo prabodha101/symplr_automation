@@ -355,7 +355,9 @@
             "uncheck",
             "hover",
             "press",
-            "selectOption"
+            "selectOption",
+            "download",
+            "downloadAppDefinition"
           ]
         },
         "value": {
@@ -387,6 +389,27 @@
           "items": {
             "$ref": "#/$defs/action"
           }
+        },
+        "name": {
+          "type": "string"
+        },
+        "expectedExtension": {
+          "type": "string"
+        },
+        "expectedFileNameContains": {
+          "type": "string"
+        },
+        "validateJson": {
+          "type": "boolean"
+        },
+        "minBytes": {
+          "type": "number"
+        },
+        "saveAs": {
+          "type": "string"
+        },
+        "timeout": {
+          "type": "number"
         }
       }
     },
