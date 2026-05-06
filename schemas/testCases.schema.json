@@ -357,7 +357,15 @@
             "press",
             "selectOption",
             "download",
-            "downloadAppDefinition"
+            "downloadAppDefinition",
+            "downloadCodeFromEmail",
+            "connectToGitHub",
+            "buildAndRunApp",
+            "waitForBuildComplete",
+            "openRunOnDeviceModal",
+            "waitForQrCodeGenerated",
+            "switchToMainPage",
+            "switchToRunPage"
           ]
         },
         "value": {
@@ -409,6 +417,21 @@
           "type": "string"
         },
         "timeout": {
+          "type": "number"
+        },
+        "expectedEmailSubject": {
+          "type": "string"
+        },
+        "emailFrom": {
+          "type": "string"
+        },
+        "emailTo": {
+          "type": "string"
+        },
+        "emailBodyContains": {
+          "type": "string"
+        },
+        "pollIntervalMs": {
           "type": "number"
         }
       }

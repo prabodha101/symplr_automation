@@ -5,6 +5,9 @@ import path from "node:path";
 import { AppCreationFlows } from "../workflows/AppCreationFlows";
 import type { AppSource } from "./configs/scenarioDefinitions";
 import { ProjectStoryBoardPage } from "../pages/ProjectStoryBoardPage";
+import { AppRunPage } from "../pages/AppRunPage";
+import { waitForGmailEmail } from "../integrations/email/GmailInbox";
+import { downloadZipFromEmailLink } from "../integrations/email/GmailDownloadLink";
 
 const dataPath = path.resolve(__dirname, "../test-data/symplr_pages.json");
 const rawTestData = JSON.parse(fs.readFileSync(dataPath, "utf-8")) as unknown;
@@ -18,6 +21,7 @@ type LocatorConfig = {
     | "role"
     | "text"
     | "label"
+    | "img"
     | "placeholder"
     | "altText"
     | "title"
@@ -53,7 +57,15 @@ type ActionConfig = {
     | "press"
     | "selectOption"
     | "download"
-    | "downloadAppDefinition";
+    | "downloadAppDefinition"
+    | "downloadCodeFromEmail"
+    | "connectToGitHub"
+    | "buildAndRunApp"
+    | "waitForBuildComplete"
+    | "openRunOnDeviceModal"
+    | "waitForQrCodeGenerated"
+    | "switchToMainPage"
+    | "switchToRunPage";
   name?: string;
   value?: string | number | boolean;
   locator?: LocatorConfig;
@@ -65,6 +77,11 @@ type ActionConfig = {
   minBytes?: number;
   saveAs?: string;
   timeout?: number;
+  expectedEmailSubject?: string;
+  emailFrom?: string;
+  emailTo?: string;
+  emailBodyContains?: string;
+  pollIntervalMs?: number;
 };
 
 type AssertionConfig = {
@@ -154,6 +171,16 @@ type TestData = {
   validationSets?: Record<string, ValidationConfig | ValidationConfig[]>;
   validationTemplates?: Record<string, ValidationTemplateDefinition>;
   testCases: PageCase[];
+};
+
+type RunContext = {
+  /** Original storyboard/dashboard page created by the fixture. */
+  mainPage: Page;
+  /** Page currently receiving config-driven locators, validations, and generic actions. */
+  activePage: Page;
+  /** Popup page opened by the Build action. */
+  runPage?: Page;
+  appRunPage?: AppRunPage;
 };
 
 function resolveTokens(value: unknown): unknown {
@@ -494,6 +521,7 @@ for (const testCase of testData.testCases.filter(
     test(`validates configured checks for ${testCase.name}`, async ({
       page,
     }, testInfo) => {
+      const runContext = createRunContext(page);
       console.log(`>-- Running test case : ${testCase.name}`);
 
       // - Execute the scenario ('Prompt', 'Figma', 'Template', 'Existing App')
@@ -515,7 +543,7 @@ for (const testCase of testData.testCases.filter(
 
       if (testCase.path || testCase.url) {
         const targetUrl = buildTargetUrl(testCase, testData);
-        await page.goto(targetUrl, {
+        await runContext.activePage.goto(targetUrl, {
           waitUntil: "domcontentloaded",
           timeout:
             testCase.navigationTimeout ??
@@ -526,7 +554,7 @@ for (const testCase of testData.testCases.filter(
 
       for (const action of testCase.beforeValidateActions ?? []) {
         await test.step(` >> before validation action: ${action.type}`, async () => {
-          await runAction(page, action, undefined, testInfo);
+          await runAction(runContext, action, undefined, testInfo);
         });
       }
 
@@ -535,20 +563,20 @@ for (const testCase of testData.testCases.filter(
         console.log(`Running page assertion: ${assertion.type}`);
 
         await test.step(` >> page assertion: ${assertion.type}`, async () => {
-          await runPageAssertion(page, testCase, assertion);
+          await runPageAssertion(runContext.activePage, testCase, assertion);
         });
       }
       // ----------------------------------------------------------------------
 
       await runValidations(
-        page,
+        runContext,
         testCase,
         testCase.validations ?? [],
         testInfo,
       );
 
       await runPageActions(
-        page,
+        runContext,
         testCase,
         testCase.pageActions ?? [],
         testInfo,
@@ -557,8 +585,20 @@ for (const testCase of testData.testCases.filter(
   });
 }
 
+function createRunContext(page: Page): RunContext {
+  return { mainPage: page, activePage: page };
+}
+
+function getAppRunPage(context: RunContext): AppRunPage {
+  const targetPage = context.runPage ?? context.activePage;
+  if (!context.appRunPage || targetPage !== context.runPage) {
+    context.appRunPage = new AppRunPage(targetPage);
+  }
+  return context.appRunPage;
+}
+
 async function runValidations(
-  page: Page,
+  context: RunContext,
   pageCase: PageCase,
   validations: ValidationConfig[],
   testInfo: TestInfo,
@@ -567,10 +607,10 @@ async function runValidations(
     console.log(` >> Running validation: ${validation.name}`);
 
     await test.step(validation.name, async () => {
-      const locator = buildLocator(page, validation.locator);
+      const locator = buildLocator(context.activePage, validation.locator);
 
       for (const action of validation.actions ?? []) {
-        await runAction(page, action, locator, testInfo);
+        await runAction(context, action, locator, testInfo);
       }
 
       for (const assertion of validation.assertions) {
@@ -581,18 +621,18 @@ async function runValidations(
 }
 
 async function runPageActions(
-  page: Page,
+  context: RunContext,
   pageCase: PageCase,
   actions: ActionConfig[],
   testInfo: TestInfo,
 ): Promise<void> {
   for (const action of actions) {
     await test.step(` >> Page action: ${action.name ?? action.type}`, async () => {
-      await runAction(page, action, undefined, testInfo);
+      await runAction(context, action, undefined, testInfo);
     });
 
-    await runValidations(page, pageCase, action.validations ?? [], testInfo);
-    await runPageActions(page, pageCase, action.pageActions ?? [], testInfo);
+    await runValidations(context, pageCase, action.validations ?? [], testInfo);
+    await runPageActions(context, pageCase, action.pageActions ?? [], testInfo);
   }
 }
 
@@ -655,6 +695,14 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
         throw new Error('label locator requires "text".');
       locator = page.getByLabel(locatorConfig.text, {
         exact: locatorConfig.exact,
+      });
+      break;
+    }
+    case "img": {
+      if (!locatorConfig.text)
+        throw new Error('label locator requires "img".');
+      locator = page.getByRole('img', {
+        name: locatorConfig.name,
       });
       break;
     }
@@ -736,13 +784,13 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
 }
 
 async function runAction(
-  page: Page,
+  context: RunContext,
   action: ActionConfig,
   defaultLocator?: Locator,
   testInfo?: TestInfo,
 ): Promise<void> {
   const locator = action.locator
-    ? buildLocator(page, action.locator)
+    ? buildLocator(context.activePage, action.locator)
     : defaultLocator;
 
   switch (action.type) {
@@ -782,20 +830,70 @@ async function runAction(
       if (!locator) throw new Error("download action requires a locator.");
       if (!testInfo)
         throw new Error("download action requires Playwright testInfo.");
-      await runGenericDownloadAction(page, locator, action, testInfo);
+      await runGenericDownloadAction(context.activePage, locator, action, testInfo);
       return;
     case "downloadAppDefinition":
       if (!testInfo)
         throw new Error(
           "downloadAppDefinition action requires Playwright testInfo.",
         );
-      await runDownloadAppDefinitionAction(page, action, testInfo);
+      await runDownloadAppDefinitionAction(context.mainPage, action, testInfo);
+      return;
+    case "downloadCodeFromEmail":
+      if (!testInfo)
+        throw new Error(
+          "downloadCodeFromEmail action requires Playwright testInfo.",
+        );
+      await runDownloadCodeFromEmailAction(context.mainPage, action, testInfo);
+      return;
+    case "connectToGitHub":
+      if (!testInfo)
+        throw new Error(
+          "connectToGitHub action requires Playwright testInfo."
+        );
+      await runPushCodeToGitHubAction(context.mainPage, action, testInfo);
+      return;
+    case "buildAndRunApp":
+      await runBuildAndRunAppAction(context);
+      return;
+    case "waitForBuildComplete":
+      await getAppRunPage(context).waitForBuildComplete();
+      return;
+    case "openRunOnDeviceModal":
+      await getAppRunPage(context).openRunOnDeviceModal();
+      return;
+    case "waitForQrCodeGenerated":
+      await getAppRunPage(context).waitForQrCodeGenerated();
+      return;
+    case "switchToMainPage":
+      context.activePage = context.mainPage;
+      await context.mainPage.bringToFront();
+      return;
+    case "switchToRunPage":
+      if (!context.runPage || context.runPage.isClosed()) {
+        throw new Error(
+          'switchToRunPage requires a previous "buildAndRunApp" action that opened the run page.',
+        );
+      }
+      context.activePage = context.runPage;
+      await context.runPage.bringToFront();
       return;
     default: {
       const unknown: never = action.type;
       throw new Error(`Unsupported action type: ${unknown}`);
     }
   }
+}
+
+async function runBuildAndRunAppAction(context: RunContext): Promise<void> {
+  const storyboardPage = new ProjectStoryBoardPage(context.mainPage);
+  const runPage = await storyboardPage.buildAndRunApp();
+
+  context.runPage = runPage;
+  context.activePage = runPage;
+  context.appRunPage = new AppRunPage(runPage);
+
+  await runPage.bringToFront();
 }
 
 async function runGenericDownloadAction(
@@ -829,6 +927,99 @@ async function runDownloadAppDefinitionAction(
   const suggestedFilename = path.basename(downloadedFilePath);
 
   validateDownloadedFile(downloadedFilePath, suggestedFilename, action);
+}
+
+async function runDownloadCodeFromEmailAction(
+  page: Page,
+  action: ActionConfig,
+  testInfo: TestInfo,
+): Promise<void> {
+  const expectedEmailSubject = action.expectedEmailSubject ?? "Download Code";
+  const emailTo = action.emailTo ?? process.env.GOOGLE_EMAIL;
+  const emailFrom = action.emailFrom ?? process.env.EMAIL_SENDER;
+
+  if (!emailTo) {
+    throw new Error(
+      'downloadCodeFromEmail requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
+    );
+  }
+
+  const storyboardPage = new ProjectStoryBoardPage(page);
+
+  // Gmail search uses second-level timestamps. Subtract a few seconds so we do
+  // not miss an email that arrives immediately after the button click.
+  const sentAt = new Date(Date.now() - 10_000);
+  await storyboardPage.downloadCode();
+
+  const email = await waitForGmailEmail({
+    from: emailFrom,
+    to: emailTo,
+    subjectContains: expectedEmailSubject,
+    bodyContains: action.emailBodyContains,
+    after: sentAt,
+    timeoutMs: action.timeout ?? 180_000,
+    pollIntervalMs: action.pollIntervalMs ?? 5_000,
+  });
+
+  expect(email.subject).toContain(expectedEmailSubject);
+
+  const zipFilePath = testInfo.outputPath(
+    action.saveAs ?? `email-download-${Date.now()}.zip`,
+  );
+
+  const { savedFilePath, downloadUrl } = await downloadZipFromEmailLink(
+    email,
+    zipFilePath,
+  );
+
+  validateDownloadedFile(savedFilePath, path.basename(savedFilePath), {
+    ...action,
+    expectedExtension: action.expectedExtension ?? ".zip",
+    minBytes: action.minBytes ?? 1,
+  });
+
+  await testInfo.attach("downloaded-code-zip", {
+    path: savedFilePath,
+    contentType: "application/zip",
+  });
+
+  console.log(`Downloaded ZIP from email link: ${downloadUrl}`);
+  console.log(`Saved ZIP file to: ${savedFilePath}`);
+}
+
+async function runPushCodeToGitHubAction(
+  page: Page,
+  action: ActionConfig,
+  testInfo: TestInfo,
+): Promise<void> {
+  const expectedEmailSubject = action.expectedEmailSubject ?? "Download Code";
+  const emailTo = action.emailTo ?? process.env.GOOGLE_EMAIL;
+  const emailFrom = action.emailFrom ?? process.env.EMAIL_SENDER;
+
+  if (!emailTo) {
+    throw new Error(
+      'pushToGitHub requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
+    );
+  }
+
+  const storyboardPage = new ProjectStoryBoardPage(page);
+
+  // Gmail search uses second-level timestamps. Subtract a few seconds so we do
+  // not miss an email that arrives immediately after the button click.
+  const sentAt = new Date(Date.now() - 10_000);
+
+  await storyboardPage.connectToGithub();
+
+  const email = await waitForGmailEmail({
+    from: process.env.EMAIL_SENDER,
+    to: process.env.GOOGLE_EMAIL,
+    subjectContains: 'Push Code Github',
+    after: sentAt,
+    timeoutMs: 180_000,
+    pollIntervalMs: 5_000,
+  });
+
+  expect(email.subject).toContain('Push Code Github');
 }
 
 function validateDownloadedFile(

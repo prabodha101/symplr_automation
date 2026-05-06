@@ -362,3 +362,214 @@ scripts/validate-test-data.mjs
 test-data/symplr_pages.json
 README.md
 ```
+
+## Config-driven download-code email validation
+
+The project also supports a named action for the workflow where Symplr sends a code download link by email.
+
+Use this in `test-data/symplr_pages.json`:
+
+```json
+{
+  "type": "downloadCodeFromEmail",
+  "name": "Click Download and validate code ZIP from email",
+  "expectedEmailSubject": "Download Code",
+  "timeout": 180000,
+  "pollIntervalMs": 5000,
+  "expectedExtension": ".zip",
+  "minBytes": 1
+}
+```
+
+What it does internally:
+
+1. Calls `ProjectStoryBoardPage.downloadCode()` to open Developer Tools and click the `Download` button.
+2. Polls Gmail for a matching email sent after the button click.
+3. Checks the email subject contains `expectedEmailSubject`.
+4. Extracts the ZIP link from the email body.
+5. Downloads the ZIP file into the Playwright test output folder.
+6. Validates that the file exists, is not empty, has a `.zip` extension, and looks like a ZIP archive.
+7. Attaches the ZIP to the Playwright report as `downloaded-code-zip`.
+
+By default, the action reads these environment variables:
+
+```env
+GOOGLE_EMAIL=your-recipient-email@example.com
+EMAIL_SENDER=notification@101digital.io
+GMAIL_CREDENTIALS_PATH=secrets/credentials.json
+GMAIL_TOKEN_PATH=secrets/token.json
+```
+
+You can override the email values in JSON only when needed:
+
+```json
+{
+  "type": "downloadCodeFromEmail",
+  "expectedEmailSubject": "Download Code",
+  "emailTo": "qa@example.com",
+  "emailFrom": "notification@101digital.io"
+}
+```
+
+Keep the JSON simple for app-specific workflows. Prefer named actions such as `downloadCodeFromEmail` when a flow needs special logic like Gmail polling, OAuth, file download, or ZIP validation.
+
+## Gmail token refresh and reauthorization
+
+The Gmail email-download test uses OAuth credentials from:
+
+```env
+GMAIL_CREDENTIALS_PATH=secrets/credentials.json
+GMAIL_TOKEN_PATH=secrets/token.json
+```
+
+The test now refreshes the Gmail **access token** automatically when:
+
+- `secrets/token.json` has an expired `access_token`, or
+- Gmail returns HTTP 401 because the access token is stale.
+
+However, if Google says the token is `expired or revoked`, that usually means the **refresh token** in `secrets/token.json` is no longer valid. That cannot be fixed silently by the test because Google requires the user to authorize the app again.
+
+When that happens, run:
+
+```bash
+npm run gmail:auth
+```
+
+Then:
+
+1. Open the printed Google authorization URL.
+2. Sign in using the Gmail account configured as `GOOGLE_EMAIL`.
+3. Approve the Gmail access request.
+4. The script recreates `secrets/token.json`.
+5. Re-run the Playwright test.
+
+The script requests this scope by default:
+
+```text
+https://www.googleapis.com/auth/gmail.readonly
+```
+
+You can override it when needed:
+
+```env
+GMAIL_SCOPES=https://www.googleapis.com/auth/gmail.readonly
+```
+
+The default local callback is:
+
+```env
+GMAIL_REDIRECT_URI=http://127.0.0.1:53682/oauth2callback
+```
+
+For the simplest setup, create a **Desktop app** OAuth client in Google Cloud and download it as `secrets/credentials.json`. Keep both `credentials.json` and `token.json` out of Git.
+
+If you still get refresh-token expiry frequently, check whether your Google OAuth consent screen is set to External + Testing. In that mode, refresh tokens can expire sooner than expected; for stable test automation, move the OAuth app to Production or regenerate the token before scheduled runs.
+
+## Config-driven Build & Run page validation
+
+The runner supports app-specific actions for the Build & Run workflow while keeping `symplr_pages.json` small.
+
+Recommended pattern:
+
+```json
+{
+  "type": "buildAndRunApp",
+  "name": "Click Build and switch to the app run page"
+}
+```
+
+This calls `ProjectStoryBoardPage.buildAndRunApp()`, waits for the popup/new page, and makes that new page the active page for the rest of the configured actions and validations in the test case.
+
+Available Build & Run named actions:
+
+| Action | What it does |
+|---|---|
+| `buildAndRunApp` | Calls `ProjectStoryBoardPage.buildAndRunApp()`, captures the popup, waits for build completion, and switches the active config page to the new run page. |
+| `waitForBuildComplete` | Calls `AppRunPage.waitForBuildComplete()` on the run page. |
+| `openRunOnDeviceModal` | Calls `AppRunPage.openRunOnDeviceModal()` on the run page. |
+| `waitForQrCodeGenerated` | Calls `AppRunPage.waitForQrCodeGenerated()` on the run page. |
+| `switchToMainPage` | Switches generic locators/actions back to the original storyboard page. |
+| `switchToRunPage` | Switches generic locators/actions back to the Build & Run popup page. |
+
+Example test case:
+
+```json
+{
+  "name": "Build app and validate Run on Device QR code",
+  "enabled": true,
+  "scenario": "existingApp",
+  "scenarioConfig": {
+    "type": "existingApp",
+    "appName": "${tokens.appName}"
+  },
+  "beforeValidateActions": [
+    {
+      "type": "click",
+      "locator": {
+        "strategy": "locator",
+        "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]"
+      }
+    }
+  ],
+  "validations": [
+    {
+      "$ref": "appDefinitionValidation"
+    }
+  ],
+  "pageActions": [
+    {
+      "type": "buildAndRunApp",
+      "name": "Click Build and switch to the app run page"
+    },
+    {
+      "type": "waitForBuildComplete",
+      "name": "Wait until the app run page is ready"
+    },
+    {
+      "type": "openRunOnDeviceModal",
+      "name": "Open the Run App on Your Device modal"
+    },
+    {
+      "type": "waitForQrCodeGenerated",
+      "name": "Validate the Connect Expo QR code is generated"
+    }
+  ]
+}
+```
+
+After `buildAndRunApp`, normal config-driven validations and generic actions run against the new run page. For example, if a new label or button is added to the run page, add a normal validation or action after `buildAndRunApp`:
+
+```json
+{
+  "$template": "textIsVisible",
+  "params": {
+    "text": "New Run Page Label",
+    "timeout": 30000
+  }
+}
+```
+
+or:
+
+```json
+{
+  "type": "click",
+  "name": "Click a new run page button",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "New Button",
+    "exact": true
+  },
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Button clicked successfully"
+      }
+    }
+  ]
+}
+```
+
+Use named actions for fragile or app-specific workflows. Use normal locators, templates, and validation sets for ordinary labels, buttons, text boxes, check boxes, and page content on the run page.

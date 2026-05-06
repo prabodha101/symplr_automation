@@ -15,7 +15,7 @@ try {
 }
 
 const locatorStrategies = new Set(['id', 'role', 'text', 'label', 'placeholder', 'altText', 'title', 'testId', 'css', 'xpath', 'locator', 'custom']);
-const actions = new Set(['click', 'fill', 'check', 'uncheck', 'hover', 'press', 'selectOption', 'download', 'downloadAppDefinition']);
+const actions = new Set(['click', 'fill', 'check', 'uncheck', 'hover', 'press', 'selectOption', 'download', 'downloadAppDefinition', 'downloadCodeFromEmail', 'connectToGitHub', 'buildAndRunApp', 'waitForBuildComplete', 'openRunOnDeviceModal', 'waitForQrCodeGenerated', 'switchToMainPage', 'switchToRunPage']);
 const pageAssertions = new Set(['titleEquals', 'titleContains', 'urlEquals', 'urlContains']);
 const locatorAssertions = new Set([
   'visible',
@@ -171,6 +171,21 @@ function validateAction(prefix, action) {
   }
   if (action.timeout !== undefined && typeof action.timeout !== 'number') {
     errors.push(`${prefix}: timeout must be a number.`);
+  }
+  if (action.expectedEmailSubject !== undefined && typeof action.expectedEmailSubject !== 'string') {
+    errors.push(`${prefix}: expectedEmailSubject must be a string.`);
+  }
+  if (action.emailFrom !== undefined && typeof action.emailFrom !== 'string') {
+    errors.push(`${prefix}: emailFrom must be a string.`);
+  }
+  if (action.emailTo !== undefined && typeof action.emailTo !== 'string') {
+    errors.push(`${prefix}: emailTo must be a string.`);
+  }
+  if (action.emailBodyContains !== undefined && typeof action.emailBodyContains !== 'string') {
+    errors.push(`${prefix}: emailBodyContains must be a string.`);
+  }
+  if (action.pollIntervalMs !== undefined && typeof action.pollIntervalMs !== 'number') {
+    errors.push(`${prefix}: pollIntervalMs must be a number.`);
   }
 
   for (const [validationIndex, validation] of (action.validations ?? []).entries()) {
