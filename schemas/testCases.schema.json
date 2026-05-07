@@ -66,8 +66,7 @@
     "pageCase": {
       "type": "object",
       "required": [
-        "name",
-        "validations"
+        "name"
       ],
       "additionalProperties": false,
       "properties": {
@@ -124,9 +123,16 @@
         },
         "validations": {
           "type": "array",
-          "minItems": 1,
+          "minItems": 0,
           "items": {
             "$ref": "#/$defs/validationOrReusable"
+          }
+        },
+        "includeTestCases": {
+          "type": "array",
+          "description": "Reuse the configured sections from existing test cases in this test case. Referenced test cases do not rerun their scenario/navigation; only their configured actions/assertions/validations are executed in order.",
+          "items": {
+            "$ref": "#/$defs/testCaseInclude"
           }
         }
       },
@@ -273,6 +279,7 @@
             "role",
             "text",
             "label",
+            "img",
             "placeholder",
             "altText",
             "title",
@@ -299,7 +306,10 @@
           "type": "string"
         },
         "exact": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "string"
+          ]
         },
         "level": {
           "type": [
@@ -320,10 +330,16 @@
           ]
         },
         "first": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "string"
+          ]
         },
         "last": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "string"
+          ]
         },
         "locator": {
           "type": "string"
@@ -499,6 +515,39 @@
           ]
         }
       }
+    },
+    "testCaseInclude": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "sections": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "beforeValidateActions",
+                  "pageAssertions",
+                  "validations",
+                  "pageActions",
+                  "includeTestCases"
+                ]
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

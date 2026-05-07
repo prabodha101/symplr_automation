@@ -137,6 +137,20 @@ type ValidationListItem =
   | ValidationRef
   | ValidationTemplateRef;
 
+type IncludeSection =
+  | "beforeValidateActions"
+  | "pageAssertions"
+  | "validations"
+  | "pageActions"
+  | "includeTestCases";
+
+type TestCaseInclude =
+  | string
+  | {
+      name: string;
+      sections?: IncludeSection[];
+    };
+
 type ValidationTemplateDefinition =
   | ValidationConfig
   | ValidationConfig[]
@@ -158,7 +172,8 @@ type PageCase = {
   beforeValidateActions?: ActionConfig[];
   pageActions?: ActionConfig[];
   pageAssertions?: AssertionConfig[];
-  validations: ValidationConfig[];
+  validations?: ValidationConfig[];
+  includeTestCases?: TestCaseInclude[];
 };
 
 type TestData = {
@@ -514,6 +529,8 @@ function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+const testCaseLookup = buildTestCaseLookup(testData.testCases);
+
 for (const testCase of testData.testCases.filter(
   (item) => item.enabled !== false,
 )) {
@@ -552,37 +569,143 @@ for (const testCase of testData.testCases.filter(
         });
       }
 
-      for (const action of testCase.beforeValidateActions ?? []) {
-        await test.step(` >> before validation action: ${action.type}`, async () => {
-          await runAction(runContext, action, undefined, testInfo);
-        });
-      }
-
-      // - Execute page assertions --------------------------------------------
-      for (const assertion of testCase.pageAssertions ?? []) {
-        console.log(`Running page assertion: ${assertion.type}`);
-
-        await test.step(` >> page assertion: ${assertion.type}`, async () => {
-          await runPageAssertion(runContext.activePage, testCase, assertion);
-        });
-      }
-      // ----------------------------------------------------------------------
-
-      await runValidations(
-        runContext,
-        testCase,
-        testCase.validations ?? [],
-        testInfo,
-      );
-
-      await runPageActions(
-        runContext,
-        testCase,
-        testCase.pageActions ?? [],
-        testInfo,
-      );
+      await runConfiguredTestCaseSections(runContext, testCase, testInfo, [
+        testCase.name,
+      ]);
     });
   });
+}
+
+function buildTestCaseLookup(testCases: PageCase[]): Map<string, PageCase> {
+  const lookup = new Map<string, PageCase>();
+
+  for (const testCase of testCases) {
+    if (lookup.has(testCase.name)) {
+      throw new Error(
+        `Duplicate test case name found in test data: ${testCase.name}`,
+      );
+    }
+    lookup.set(testCase.name, testCase);
+  }
+
+  return lookup;
+}
+
+const defaultIncludeSections: IncludeSection[] = [
+  "beforeValidateActions",
+  "pageAssertions",
+  "validations",
+  "pageActions",
+  "includeTestCases",
+];
+
+function normalizeTestCaseInclude(include: TestCaseInclude): {
+  name: string;
+  sections: IncludeSection[];
+} {
+  if (typeof include === "string") {
+    return { name: include, sections: defaultIncludeSections };
+  }
+
+  if (!include.name) {
+    throw new Error('includeTestCases item requires "name".');
+  }
+
+  return {
+    name: include.name,
+    sections:
+      include.sections && include.sections.length > 0
+        ? include.sections
+        : defaultIncludeSections,
+  };
+}
+
+function hasIncludedSection(
+  sections: IncludeSection[],
+  section: IncludeSection,
+): boolean {
+  return sections.includes(section);
+}
+
+async function runConfiguredTestCaseSections(
+  context: RunContext,
+  pageCase: PageCase,
+  testInfo: TestInfo,
+  includeStack: string[],
+  sections: IncludeSection[] = defaultIncludeSections,
+): Promise<void> {
+  if (hasIncludedSection(sections, "beforeValidateActions")) {
+    for (const action of pageCase.beforeValidateActions ?? []) {
+      await test.step(
+        ` >> before validation action: ${action.name ?? action.type}`,
+        async () => {
+          await runAction(context, action, undefined, testInfo);
+        },
+      );
+    }
+  }
+
+  if (hasIncludedSection(sections, "pageAssertions")) {
+    for (const assertion of pageCase.pageAssertions ?? []) {
+      console.log(`Running page assertion: ${assertion.type}`);
+
+      await test.step(` >> page assertion: ${assertion.type}`, async () => {
+        await runPageAssertion(context.activePage, pageCase, assertion);
+      });
+    }
+  }
+
+  if (hasIncludedSection(sections, "validations")) {
+    await runValidations(context, pageCase, pageCase.validations ?? [], testInfo);
+  }
+
+  if (hasIncludedSection(sections, "pageActions")) {
+    await runPageActions(context, pageCase, pageCase.pageActions ?? [], testInfo);
+  }
+
+  if (hasIncludedSection(sections, "includeTestCases")) {
+    await runIncludedTestCases(context, pageCase, testInfo, includeStack);
+  }
+}
+
+async function runIncludedTestCases(
+  context: RunContext,
+  pageCase: PageCase,
+  testInfo: TestInfo,
+  includeStack: string[],
+): Promise<void> {
+  for (const include of pageCase.includeTestCases ?? []) {
+    const normalizedInclude = normalizeTestCaseInclude(include);
+    const includedTestCase = testCaseLookup.get(normalizedInclude.name);
+
+    if (!includedTestCase) {
+      throw new Error(
+        `Included test case not found: ${normalizedInclude.name}. Referenced from: ${pageCase.name}`,
+      );
+    }
+
+    if (includeStack.includes(includedTestCase.name)) {
+      throw new Error(
+        `Circular includeTestCases reference detected: ${[
+          ...includeStack,
+          includedTestCase.name,
+        ].join(" -> ")}`,
+      );
+    }
+
+    await test.step(
+      ` >> included test case: ${includedTestCase.name}`,
+      async () => {
+        await runConfiguredTestCaseSections(
+          context,
+          includedTestCase,
+          testInfo,
+          [...includeStack, includedTestCase.name],
+          normalizedInclude.sections,
+        );
+      },
+    );
+  }
 }
 
 function createRunContext(page: Page): RunContext {
@@ -970,6 +1093,10 @@ async function runDownloadCodeFromEmailAction(
   const { savedFilePath, downloadUrl } = await downloadZipFromEmailLink(
     email,
     zipFilePath,
+    {
+      request: page.context().request,
+      timeoutMs: action.timeout ?? 180_000,
+    },
   );
 
   validateDownloadedFile(savedFilePath, path.basename(savedFilePath), {

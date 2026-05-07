@@ -4,7 +4,9 @@ import path from 'node:path';
 
 const filePath = process.argv[2] ?? 'test-data/symplr_pages.json';
 const absolutePath = path.resolve(process.cwd(), filePath);
-const rawData = JSON.parse(fs.readFileSync(absolutePath, 'utf-8').replace(/^\uFEFF/, ''));
+const rawData = JSON.parse(
+  fs.readFileSync(absolutePath, 'utf-8').replace(/^\uFEFF/, '')
+);
 
 const errors = [];
 let data = rawData;
@@ -14,9 +16,53 @@ try {
   errors.push(error instanceof Error ? error.message : String(error));
 }
 
-const locatorStrategies = new Set(['id', 'role', 'text', 'label', 'placeholder', 'altText', 'title', 'testId', 'css', 'xpath', 'locator', 'custom']);
-const actions = new Set(['click', 'fill', 'check', 'uncheck', 'hover', 'press', 'selectOption', 'download', 'downloadAppDefinition', 'downloadCodeFromEmail', 'connectToGitHub', 'buildAndRunApp', 'waitForBuildComplete', 'openRunOnDeviceModal', 'waitForQrCodeGenerated', 'switchToMainPage', 'switchToRunPage']);
-const pageAssertions = new Set(['titleEquals', 'titleContains', 'urlEquals', 'urlContains']);
+const locatorStrategies = new Set([
+  'id',
+  'role',
+  'text',
+  'label',
+  'img',
+  'placeholder',
+  'altText',
+  'title',
+  'testId',
+  'css',
+  'xpath',
+  'locator',
+  'custom',
+]);
+const actions = new Set([
+  'click',
+  'fill',
+  'check',
+  'uncheck',
+  'hover',
+  'press',
+  'selectOption',
+  'download',
+  'downloadAppDefinition',
+  'downloadCodeFromEmail',
+  'connectToGitHub',
+  'buildAndRunApp',
+  'waitForBuildComplete',
+  'openRunOnDeviceModal',
+  'waitForQrCodeGenerated',
+  'switchToMainPage',
+  'switchToRunPage',
+]);
+const includeSections = new Set([
+  'beforeValidateActions',
+  'pageAssertions',
+  'validations',
+  'pageActions',
+  'includeTestCases',
+]);
+const pageAssertions = new Set([
+  'titleEquals',
+  'titleContains',
+  'urlEquals',
+  'urlContains',
+]);
 const locatorAssertions = new Set([
   'visible',
   'hidden',
@@ -34,7 +80,7 @@ const locatorAssertions = new Set([
   'countEquals',
   'countGreaterThan',
   'classContains',
-  'cssEquals'
+  'cssEquals',
 ]);
 const needsExpected = new Set([
   'titleEquals',
@@ -48,7 +94,7 @@ const needsExpected = new Set([
   'countEquals',
   'countGreaterThan',
   'classContains',
-  'cssEquals'
+  'cssEquals',
 ]);
 
 const testCases = Array.isArray(data.testCases) ? data.testCases : data.pages;
@@ -56,35 +102,61 @@ if (!Array.isArray(testCases) || testCases.length === 0) {
   errors.push('Root property "testCases" must be a non-empty array.');
 }
 
+const testCaseNameCounts = new Map();
+for (const pageCase of testCases ?? []) {
+  if (!pageCase?.name) continue;
+  testCaseNameCounts.set(pageCase.name, (testCaseNameCounts.get(pageCase.name) ?? 0) + 1);
+}
+for (const [name, count] of testCaseNameCounts.entries()) {
+  if (count > 1) errors.push(`Duplicate test case name: ${name}`);
+}
+const testCaseNames = new Set(testCaseNameCounts.keys());
+
 for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
   const prefix = `testCases[${pageIndex}] (${pageCase?.name ?? 'unnamed'})`;
-  if (!pageCase.name) errors.push(`${prefix}: missing name.`);
-  if (!pageCase.path && !pageCase.url && !pageCase.scenario) {
+  if (!pageCase?.name) errors.push(`${prefix}: missing name.`);
+  if (!pageCase?.path && !pageCase?.url && !pageCase?.scenario) {
     errors.push(`${prefix}: provide path, url, or scenario.`);
   }
-  if (pageCase.scenario && !pageCase.scenarioConfig) {
+  if (pageCase?.scenario && !pageCase.scenarioConfig) {
     errors.push(`${prefix}: scenario is defined but scenarioConfig is missing.`);
   }
-  if (!Array.isArray(pageCase.validations) || pageCase.validations.length === 0) {
-    errors.push(`${prefix}: validations must be a non-empty array.`);
+
+  const hasExecutableContent =
+    hasItems(pageCase?.beforeValidateActions) ||
+    hasItems(pageCase?.pageAssertions) ||
+    hasItems(pageCase?.validations) ||
+    hasItems(pageCase?.pageActions) ||
+    hasItems(pageCase?.includeTestCases);
+
+  if (!hasExecutableContent) {
+    errors.push(
+      `${prefix}: provide at least one of validations, pageActions, pageAssertions, beforeValidateActions, or includeTestCases.`
+    );
   }
 
-  for (const [actionIndex, action] of (pageCase.beforeValidateActions ?? []).entries()) {
+  for (const [actionIndex, action] of (pageCase?.beforeValidateActions ?? []).entries()) {
     validateAction(`${prefix}.beforeValidateActions[${actionIndex}]`, action);
   }
 
-  for (const [assertionIndex, assertion] of (pageCase.pageAssertions ?? []).entries()) {
+  for (const [assertionIndex, assertion] of (pageCase?.pageAssertions ?? []).entries()) {
     validateAssertion(`${prefix}.pageAssertions[${assertionIndex}]`, assertion, pageAssertions);
   }
 
-  for (const [validationIndex, validation] of (pageCase.validations ?? []).entries()) {
+  for (const [validationIndex, validation] of (pageCase?.validations ?? []).entries()) {
     validateValidation(`${prefix}.validations[${validationIndex}]`, validation);
   }
 
-  for (const [actionIndex, action] of (pageCase.pageActions ?? []).entries()) {
+  for (const [actionIndex, action] of (pageCase?.pageActions ?? []).entries()) {
     validateAction(`${prefix}.pageActions[${actionIndex}]`, action);
   }
+
+  for (const [includeIndex, include] of (pageCase?.includeTestCases ?? []).entries()) {
+    validateTestCaseInclude(`${prefix}.includeTestCases[${includeIndex}]`, include, pageCase.name, []);
+  }
 }
+
+validateIncludeCycles(testCases ?? []);
 
 if (errors.length > 0) {
   console.error('Invalid test data:');
@@ -94,20 +166,84 @@ if (errors.length > 0) {
 
 console.log(`Test data looks valid: ${absolutePath}`);
 
+function hasItems(value) {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function validateTestCaseInclude(prefix, include, ownerName) {
+  let includeName;
+  let sections;
+
+  if (typeof include === 'string') {
+    includeName = include;
+  } else if (include && typeof include === 'object') {
+    includeName = include.name;
+    sections = include.sections;
+  } else {
+    errors.push(`${prefix}: include must be a test case name string or an object with name.`);
+    return;
+  }
+
+  if (!includeName || typeof includeName !== 'string') {
+    errors.push(`${prefix}: include name must be a non-empty string.`);
+    return;
+  }
+  if (!testCaseNames.has(includeName)) {
+    errors.push(`${prefix}: included test case not found: ${includeName}.`);
+  }
+  if (includeName === ownerName) {
+    errors.push(`${prefix}: test case cannot include itself.`);
+  }
+
+  if (sections !== undefined) {
+    if (!Array.isArray(sections) || sections.length === 0) {
+      errors.push(`${prefix}.sections: must be a non-empty array when provided.`);
+    } else {
+      for (const [sectionIndex, section] of sections.entries()) {
+        if (!includeSections.has(section)) {
+          errors.push(`${prefix}.sections[${sectionIndex}]: unsupported section "${section}".`);
+        }
+      }
+    }
+  }
+}
+
+function validateIncludeCycles(cases) {
+  const byName = new Map(cases.filter((item) => item?.name).map((item) => [item.name, item]));
+
+  function visit(caseName, stack) {
+    if (stack.includes(caseName)) {
+      errors.push(`Circular includeTestCases reference detected: ${[...stack, caseName].join(' -> ')}`);
+      return;
+    }
+    const pageCase = byName.get(caseName);
+    if (!pageCase) return;
+
+    for (const include of pageCase.includeTestCases ?? []) {
+      const includeName = typeof include === 'string' ? include : include?.name;
+      if (includeName) visit(includeName, [...stack, caseName]);
+    }
+  }
+
+  for (const pageCase of cases) {
+    if (pageCase?.name) visit(pageCase.name, []);
+  }
+}
+
 function validateValidation(prefix, validation) {
   const validationPrefix = `${prefix} (${validation?.name ?? 'unnamed'})`;
-  if (!validation.name) errors.push(`${validationPrefix}: missing name.`);
-  validateLocator(`${validationPrefix}.locator`, validation.locator);
+  if (!validation?.name) errors.push(`${validationPrefix}: missing name.`);
+  validateLocator(`${validationPrefix}.locator`, validation?.locator);
 
-  for (const [actionIndex, action] of (validation.actions ?? []).entries()) {
+  for (const [actionIndex, action] of (validation?.actions ?? []).entries()) {
     validateAction(`${validationPrefix}.actions[${actionIndex}]`, action);
   }
 
-  if (!Array.isArray(validation.assertions) || validation.assertions.length === 0) {
+  if (!Array.isArray(validation?.assertions) || validation.assertions.length === 0) {
     errors.push(`${validationPrefix}: assertions must be a non-empty array.`);
   }
 
-  for (const [assertionIndex, assertion] of (validation.assertions ?? []).entries()) {
+  for (const [assertionIndex, assertion] of (validation?.assertions ?? []).entries()) {
     validateAssertion(`${validationPrefix}.assertions[${assertionIndex}]`, assertion, locatorAssertions);
   }
 }
@@ -125,6 +261,9 @@ function validateLocator(prefix, locator) {
   if (locator.strategy === 'role' && !locator.role) errors.push(`${prefix}: role strategy requires role.`);
   if (['text', 'label', 'placeholder', 'altText', 'title'].includes(locator.strategy) && !locator.text) {
     errors.push(`${prefix}: ${locator.strategy} strategy requires text.`);
+  }
+  if (locator.strategy === 'img' && !locator.name && !locator.text) {
+    errors.push(`${prefix}: img strategy requires name or text.`);
   }
   if (locator.strategy === 'testId' && !locator.testId) errors.push(`${prefix}: testId strategy requires testId.`);
   if (['css', 'xpath'].includes(locator.strategy) && !locator.selector) {
@@ -244,7 +383,7 @@ function resolveReusableValidations(value) {
   if (!Array.isArray(cases)) return value;
   return {
     ...value,
-    testCases: cases.map((pageCase) => resolvePageCaseReusableItems(pageCase, validationSets, validationTemplates))
+    testCases: cases.map((pageCase) => resolvePageCaseReusableItems(pageCase, validationSets, validationTemplates)),
   };
 }
 

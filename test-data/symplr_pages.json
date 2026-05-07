@@ -542,7 +542,7 @@
       ]
     },
     {
-      "name": "Create app using Figma",
+      "name": "Build an app from Figma screens",
       "enabled": true,
       "scenario": "figma",
       "scenarioConfig": {
@@ -844,7 +844,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Simulation Detection helps protect your app by identifying if it’s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
+                "text": "Simulation Detection helps protect your app by identifying if it\u2019s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
               }
             },
             {
@@ -868,7 +868,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Root Device Detection helps protect your app by detecting if it’s running on a rooted device, reducing the risk of data breaches and unauthorized access."
+                "text": "Root Device Detection helps protect your app by detecting if it\u2019s running on a rooted device, reducing the risk of data breaches and unauthorized access."
               }
             },
             {
@@ -892,7 +892,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device’s console, helping protect against data leaks and improving overall app security."
+                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device\u2019s console, helping protect against data leaks and improving overall app security."
               }
             }
           ],
@@ -1147,7 +1147,7 @@
       ]
     },
     {
-      "name": "Download and validate appDefinition",
+      "name": "Download app definition file successfully",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -1180,7 +1180,7 @@
       ]
     },
     {
-      "name": "Download code and validate the email",
+      "name": "Validate that code can be sent by email from Developer Options",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -1215,7 +1215,7 @@
       ]
     },
     {
-      "name": "Connect to GitHub",
+      "name": "Validate that code can be pushed to GitHub from Developer Options",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -1250,7 +1250,41 @@
       ]
     },
     {
-      "name": "Build app and validate Run on Device QR code",
+      "name": "Validate that the app can be built and run from the storyboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "buildAndRunApp",
+          "name": "Click Build and switch to the app run page"
+        },
+        {
+          "type": "waitForBuildComplete",
+          "name": "Wait until the app run page is ready"
+        }
+      ]
+    },
+    {
+      "name": "Generate a QR code to run the app on a real device",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -1304,6 +1338,25 @@
             }
           ]
         }
+      ]
+    },
+    {
+      "name": "End to End scenario test",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "includeTestCases": [
+        "Storyboard validation: Validate 'Blueprint' option",
+        "Storyboard validation: Validate 'Pages' option",
+        "Storyboard validation: Validate 'Variables' option",
+        "Storyboard validation: Validate 'Themes' option",
+        "Storyboard validation: Validate 'Settings' option",
+        "Download app definition file successfully",
+        "Validate that code can be sent by email from Developer Options",
+        "Generate a QR code to run the app on a real device"
       ]
     }
   ]
