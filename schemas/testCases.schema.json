@@ -2,9 +2,6 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Data-driven Playwright page validation data",
   "type": "object",
-  "required": [
-    "testCases"
-  ],
   "additionalProperties": false,
   "properties": {
     "$schema": {
@@ -60,6 +57,14 @@
       "items": {
         "$ref": "#/$defs/pageCase"
       }
+    },
+    "pages": {
+      "type": "array",
+      "description": "Legacy alias for testCases. Prefer testCases for new files.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/pageCase"
+      }
     }
   },
   "$defs": {
@@ -83,7 +88,7 @@
           ]
         },
         "scenarioConfig": {
-          "type": "object"
+          "$ref": "#/$defs/scenarioConfig"
         },
         "enabled": {
           "type": "boolean"
@@ -212,7 +217,7 @@
             },
             {
               "type": "string",
-              "pattern": "^\\$\\{params?\\.[a-zA-Z0-9_.]+\\}$"
+              "pattern": "^\\$\\{(?:param|params|tokens)\\.[a-zA-Z0-9_.]+\\}$"
             }
           ]
         },
@@ -274,21 +279,31 @@
       "additionalProperties": false,
       "properties": {
         "strategy": {
-          "enum": [
-            "id",
-            "role",
-            "text",
-            "label",
-            "img",
-            "placeholder",
-            "altText",
-            "title",
-            "testId",
-            "css",
-            "xpath",
-            "locator",
-            "custom"
-          ]
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "id",
+                "role",
+                "text",
+                "label",
+                "img",
+                "placeholder",
+                "altText",
+                "title",
+                "testId",
+                "css",
+                "xpath",
+                "locator",
+                "custom"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$\\{(?:param|params|tokens)\\.[a-zA-Z0-9_.]+\\}$"
+            }
+          ],
+          "description": "Supported runtime locator strategies. A ${param.*} placeholder is allowed inside validationTemplates."
         },
         "id": {
           "type": "string"
@@ -348,13 +363,235 @@
           "type": "string"
         },
         "engine": {
-          "enum": [
-            "css",
-            "xpath",
-            "playwright"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "css",
+                "xpath",
+                "playwright"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$\\{(?:param|params|tokens)\\.[a-zA-Z0-9_.]+\\}$"
+            }
+          ]
+        },
+        "timeout": {
+          "type": [
+            "number",
+            "string"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "id"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "role"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "role"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "text"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "label"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "placeholder"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "altText"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "title"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "text"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "testId"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "testId"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "css"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "selector"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "xpath"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "selector"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "locator"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "locator"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "img"
+              }
+            }
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "name"
+                ]
+              },
+              {
+                "required": [
+                  "text"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "strategy": {
+                "const": "custom"
+              }
+            }
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "locator"
+                ]
+              },
+              {
+                "required": [
+                  "selector"
+                ]
+              },
+              {
+                "required": [
+                  "value"
+                ]
+              }
+            ]
+          }
+        }
+      ]
     },
     "action": {
       "type": "object",
@@ -364,6 +601,7 @@
       "additionalProperties": false,
       "properties": {
         "type": {
+          "type": "string",
           "enum": [
             "click",
             "fill",
@@ -382,7 +620,8 @@
             "waitForQrCodeGenerated",
             "switchToMainPage",
             "switchToRunPage"
-          ]
+          ],
+          "description": "Supported configuration-driven action types implemented in tests/data-driven.spec.ts."
         },
         "value": {
           "type": [
@@ -398,7 +637,7 @@
             },
             {
               "type": "string",
-              "pattern": "^\\$\\{params?\\.[a-zA-Z0-9_.]+\\}$"
+              "pattern": "^\\$\\{(?:param|params|tokens)\\.[a-zA-Z0-9_.]+\\}$"
             }
           ]
         },
@@ -427,13 +666,19 @@
           "type": "boolean"
         },
         "minBytes": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "saveAs": {
           "type": "string"
         },
         "timeout": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         },
         "expectedEmailSubject": {
           "type": "string"
@@ -448,9 +693,32 @@
           "type": "string"
         },
         "pollIntervalMs": {
-          "type": "number"
+          "type": [
+            "number",
+            "string"
+          ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "fill",
+                  "press",
+                  "selectOption"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "value"
+            ]
+          }
+        }
+      ]
     },
     "assertion": {
       "type": "object",
@@ -460,31 +728,39 @@
       "additionalProperties": false,
       "properties": {
         "type": {
-          "type": "string",
-          "enum": [
-            "visible",
-            "hidden",
-            "attached",
-            "enabled",
-            "disabled",
-            "editable",
-            "checked",
-            "unchecked",
-            "empty",
-            "textEquals",
-            "textContains",
-            "valueEquals",
-            "attributeEquals",
-            "countEquals",
-            "countGreaterThan",
-            "classContains",
-            "cssEquals",
-            "titleEquals",
-            "titleContains",
-            "urlEquals",
-            "urlContains",
-            "${param.assertion}"
-          ]
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "visible",
+                "hidden",
+                "attached",
+                "enabled",
+                "disabled",
+                "editable",
+                "checked",
+                "unchecked",
+                "empty",
+                "textEquals",
+                "textContains",
+                "valueEquals",
+                "attributeEquals",
+                "countEquals",
+                "countGreaterThan",
+                "classContains",
+                "cssEquals",
+                "titleEquals",
+                "titleContains",
+                "urlEquals",
+                "urlContains"
+              ]
+            },
+            {
+              "type": "string",
+              "pattern": "^\\$\\{(?:param|params|tokens)\\.[a-zA-Z0-9_.]+\\}$"
+            }
+          ],
+          "description": "Supported locator and page assertion types. A ${param.*} placeholder is allowed inside validationTemplates."
         },
         "expected": {
           "type": [
@@ -514,7 +790,73 @@
             "string"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "titleEquals",
+                  "titleContains",
+                  "urlEquals",
+                  "urlContains",
+                  "textEquals",
+                  "textContains",
+                  "valueEquals",
+                  "attributeEquals",
+                  "countEquals",
+                  "countGreaterThan",
+                  "classContains",
+                  "cssEquals"
+                ]
+              }
+            }
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "expected"
+                ]
+              },
+              {
+                "required": [
+                  "expectedRegex"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "attributeEquals"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "attributeName"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "cssEquals"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "cssName"
+            ]
+          }
+        }
+      ]
     },
     "testCaseInclude": {
       "oneOf": [
@@ -548,6 +890,95 @@
           }
         }
       ]
+    },
+    "scenarioConfig": {
+      "description": "Configuration for AppCreationFlows.createOrLoadApp().",
+      "anyOf": [
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "prompt"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "type": {
+              "const": "prompt"
+            },
+            "prompt": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "templateName"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "type": {
+              "const": "template"
+            },
+            "templateName": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "figmaUrl",
+            "figmaAppName"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "type": {
+              "const": "figma"
+            },
+            "figmaUrl": {
+              "type": "string"
+            },
+            "figmaAppName": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "appName"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "type": {
+              "const": "existingApp"
+            },
+            "appName": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true
+        }
+      ]
     }
-  }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "testCases"
+      ]
+    },
+    {
+      "required": [
+        "pages"
+      ]
+    }
+  ]
 }
