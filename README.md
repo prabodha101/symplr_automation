@@ -352,6 +352,20 @@ Use `${scenarioConfig.fieldName}` inside a scenario definition to read values fr
 - `${scenarioConfig.figmaUrl}` for `figma`
 - `${scenarioConfig.templateName}` for `template`
 
+For example, a template scenario test case must provide the template name:
+
+```json
+{
+  "name": "Build an app from a template",
+  "enabled": true,
+  "scenario": "template",
+  "scenarioConfig": {
+    "type": "template",
+    "templateName": "${tokens.templateName}"
+  }
+}
+```
+
 If a label, button name, or locator changes in one of these flows, update `scenarioDefinitions` in the JSON file. You should not need to update TypeScript unless a completely new action type is required.
 
 ## Validation templates

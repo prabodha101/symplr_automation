@@ -7,6 +7,8 @@
   },
   "tokens": {
     "appName": "pay101V2DemoApp",
+    "templateName": "pay101V2DemoApp",
+    "templateId": "cb1e24ce-42a1-4820-b9fc-d4979ab87ef6",
     "figmaUrl": "https://www.figma.com/design/oqD2rTJHlIifgedF0RHIa6/Food-Couriers---Food-Delivery-App---UI-UX-Design-Case-Study--Community---Copy---Copy---Copy-?node-id=2-10659&m=dev",
     "prompt": "Build hello world app with a button that shows an alert when clicked",
     "homePageTitle": "Manage and Build Apps | Symplr",
@@ -158,21 +160,32 @@
           }
         },
         {
-          "type": "click",
-          "name": "Select template",
+          "type": "fill",
+          "name": "Search for existing template",
           "locator": {
-            "strategy": "text",
-            "text": "${scenarioConfig.templateName}",
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Search",
+            "exact": true
+          },
+          "value": "pay101V2DemoApp"
+        },
+        {
+          "type": "click",
+          "name": "Open existing template from search result",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[data-template-id=\"${tokens.templateId}\"]",
             "exact": true
           }
         },
         {
           "type": "click",
-          "name": "Create app from selected template",
+          "name": "Open existing template from search result",
           "locator": {
             "strategy": "role",
             "role": "button",
-            "name": "Use Template",
+            "name": "Continue",
             "exact": true
           }
         }
@@ -746,6 +759,10 @@
       "name": "Build an app from a template",
       "enabled": true,
       "scenario": "template",
+      "scenarioConfig": {
+        "type": "template",
+        "templateName": "${tokens.templateName}"
+      },
       "pageAssertions": [
         {
           "type": "urlContains",
@@ -1065,7 +1082,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Simulation Detection helps protect your app by identifying if it’s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
+                "text": "Simulation Detection helps protect your app by identifying if it\u2019s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
               }
             },
             {
@@ -1089,7 +1106,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Root Device Detection helps protect your app by detecting if it’s running on a rooted device, reducing the risk of data breaches and unauthorized access."
+                "text": "Root Device Detection helps protect your app by detecting if it\u2019s running on a rooted device, reducing the risk of data breaches and unauthorized access."
               }
             },
             {
@@ -1113,7 +1130,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device’s console, helping protect against data leaks and improving overall app security."
+                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device\u2019s console, helping protect against data leaks and improving overall app security."
               }
             }
           ],
@@ -1627,6 +1644,26 @@
       "scenarioConfig": {
         "type": "existingApp",
         "appName": "${tokens.appName}"
+      },
+      "includeTestCases": [
+        "Open Blueprint screen from storyboard",
+        "Open Pages screen from storyboard",
+        "Open Themes screen from storyboard",
+        "Open Variables screen from storyboard",
+        "Open Settings screen from storyboard",
+        "Validate that code can be sent by email from Developer Options",
+        "Validate that code can be pushed to GitHub from Developer Options",
+        "Validate that the app can be built and run from the storyboard",
+        "Generate a QR code to run the app on a real device on build page"
+      ]
+    },
+    {
+      "name": "End to End scenario test using template",
+      "enabled": true,
+      "scenario": "template",
+      "scenarioConfig": {
+        "type": "template",
+        "templateName": "${tokens.templateName}"
       },
       "includeTestCases": [
         "Open Blueprint screen from storyboard",

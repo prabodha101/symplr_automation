@@ -653,10 +653,18 @@ async function runConfiguredScenario(
   }
 
   const scenarioConfig = pageCase.scenarioConfig ?? {};
-  const scenarioDefinition = resolveScenarioConfigPlaceholders(
-    deepClone(rawDefinition),
-    scenarioConfig,
-  ) as ScenarioDefinition;
+  let scenarioDefinition: ScenarioDefinition;
+  try {
+    scenarioDefinition = resolveScenarioConfigPlaceholders(
+      deepClone(rawDefinition),
+      scenarioConfig,
+    ) as ScenarioDefinition;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to resolve scenario "${pageCase.scenario}" for test case "${pageCase.name}". ${message}`,
+    );
+  }
 
   console.log(`  >> Scenario: ${pageCase.scenario}`);
 

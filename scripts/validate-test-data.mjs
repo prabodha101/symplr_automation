@@ -134,6 +134,16 @@ for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
   if (pageCase?.scenarioConfig !== undefined && (pageCase.scenarioConfig === null || typeof pageCase.scenarioConfig !== 'object' || Array.isArray(pageCase.scenarioConfig))) {
     errors.push(`${prefix}: scenarioConfig must be an object when provided.`);
   }
+  if (pageCase?.scenario && scenarioDefinitions[pageCase.scenario]) {
+    const requiredScenarioConfigKeys = collectScenarioConfigPlaceholders(scenarioDefinitions[pageCase.scenario]);
+    for (const key of requiredScenarioConfigKeys) {
+      if (!hasNestedProperty(pageCase.scenarioConfig ?? {}, key)) {
+        errors.push(
+          `${prefix}: scenario "${pageCase.scenario}" requires scenarioConfig.${key} because scenarioDefinitions.${pageCase.scenario} references "${'${'}scenarioConfig.${key}}".`
+        );
+      }
+    }
+  }
 
   const hasExecutableContent =
     hasItems(pageCase?.beforeValidateActions) ||
@@ -181,6 +191,40 @@ console.log(`Test data looks valid: ${absolutePath}`);
 
 function hasItems(value) {
   return Array.isArray(value) && value.length > 0;
+}
+
+function collectScenarioConfigPlaceholders(value, found = new Set()) {
+  if (Array.isArray(value)) {
+    for (const item of value) collectScenarioConfigPlaceholders(item, found);
+    return found;
+  }
+
+  if (typeof value === 'string') {
+    for (const match of value.matchAll(/\$\{scenarioConfig\.([a-zA-Z0-9_.]+)\}/g)) {
+      found.add(match[1]);
+    }
+    return found;
+  }
+
+  if (value && typeof value === 'object') {
+    for (const item of Object.values(value)) collectScenarioConfigPlaceholders(item, found);
+  }
+
+  return found;
+}
+
+function hasNestedProperty(value, key) {
+  const pathParts = key.split('.');
+  let current = value;
+
+  for (const part of pathParts) {
+    if (current === null || typeof current !== 'object' || !(part in current)) {
+      return false;
+    }
+    current = current[part];
+  }
+
+  return true;
 }
 
 function validateScenarioDefinition(prefix, scenarioDefinition) {

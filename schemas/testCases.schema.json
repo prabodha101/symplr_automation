@@ -166,6 +166,152 @@
             "scenario"
           ]
         }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "scenario": {
+                "const": "prompt"
+              }
+            },
+            "required": [
+              "scenario"
+            ]
+          },
+          "then": {
+            "required": [
+              "scenarioConfig"
+            ],
+            "properties": {
+              "scenarioConfig": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "prompt"
+                ],
+                "additionalProperties": true,
+                "properties": {
+                  "type": {
+                    "const": "prompt"
+                  },
+                  "prompt": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scenario": {
+                "const": "template"
+              }
+            },
+            "required": [
+              "scenario"
+            ]
+          },
+          "then": {
+            "required": [
+              "scenarioConfig"
+            ],
+            "properties": {
+              "scenarioConfig": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "templateName"
+                ],
+                "additionalProperties": true,
+                "properties": {
+                  "type": {
+                    "const": "template"
+                  },
+                  "templateName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scenario": {
+                "const": "figma"
+              }
+            },
+            "required": [
+              "scenario"
+            ]
+          },
+          "then": {
+            "required": [
+              "scenarioConfig"
+            ],
+            "properties": {
+              "scenarioConfig": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "figmaUrl",
+                  "figmaAppName"
+                ],
+                "additionalProperties": true,
+                "properties": {
+                  "type": {
+                    "const": "figma"
+                  },
+                  "figmaUrl": {
+                    "type": "string"
+                  },
+                  "figmaAppName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "scenario": {
+                "const": "existingApp"
+              }
+            },
+            "required": [
+              "scenario"
+            ]
+          },
+          "then": {
+            "required": [
+              "scenarioConfig"
+            ],
+            "properties": {
+              "scenarioConfig": {
+                "type": "object",
+                "required": [
+                  "type",
+                  "appName"
+                ],
+                "additionalProperties": true,
+                "properties": {
+                  "type": {
+                    "const": "existingApp"
+                  },
+                  "appName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
       ]
     },
     "validationTemplateDefinition": {
