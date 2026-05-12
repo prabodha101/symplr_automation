@@ -16,6 +16,7 @@ export class ProjectStoryBoardPage {
   }
 
   async waitForLoaded(timeout = 5 * 60 * 1000): Promise<void> {
+      console.log('  >> Waiting for Project Storyboard page to load...');
       await this.page.waitForURL(
           /\/dashboard\/projects\?appId=[0-9a-fA-F-]+$/,
           { timeout }
@@ -24,6 +25,8 @@ export class ProjectStoryBoardPage {
   }
 
   async waitForAppDefinitionAvailable(timeout = 3 * 60 * 1000): Promise<void> {
+    console.log('  >> Waiting for app definition to be available...');
+    await this.page.waitForTimeout(10000); // Initial wait to allow the app definition generation process to start
     await expect(this.downloadAppDefinitionButton).toBeVisible({ timeout });
     await expect(this.downloadAppDefinitionButton).toBeEnabled({ timeout });
   }

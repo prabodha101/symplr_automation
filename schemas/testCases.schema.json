@@ -383,6 +383,10 @@
             "number",
             "string"
           ]
+        },
+        "frameLocator": {
+          "type": "string",
+          "description": "Optional selector for an iframe. When provided, this locator is resolved inside that iframe, e.g. \"#emulator-iframe\" or \"iframe[name=app]\"."
         }
       },
       "allOf": [
@@ -643,6 +647,14 @@
         },
         "validations": {
           "type": "array",
+          "description": "Backward-compatible action-level validations. These run immediately after the action finishes.",
+          "items": {
+            "$ref": "#/$defs/validationOrReusable"
+          }
+        },
+        "postValidations": {
+          "type": "array",
+          "description": "Preferred action-level validations. These run immediately after the action finishes and before nested pageActions.",
           "items": {
             "$ref": "#/$defs/validationOrReusable"
           }

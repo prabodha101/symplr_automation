@@ -276,6 +276,9 @@ function validateLocator(prefix, locator) {
   if (locator.engine && !['css', 'xpath', 'playwright'].includes(locator.engine)) {
     errors.push(`${prefix}: engine must be css, xpath, or playwright.`);
   }
+  if (locator.frameLocator !== undefined && typeof locator.frameLocator !== 'string') {
+    errors.push(`${prefix}: frameLocator must be a string iframe selector, for example "#emulator-iframe".`);
+  }
 }
 
 function validateAction(prefix, action) {
@@ -329,6 +332,10 @@ function validateAction(prefix, action) {
 
   for (const [validationIndex, validation] of (action.validations ?? []).entries()) {
     validateValidation(`${prefix}.validations[${validationIndex}]`, validation);
+  }
+
+  for (const [validationIndex, validation] of (action.postValidations ?? []).entries()) {
+    validateValidation(`${prefix}.postValidations[${validationIndex}]`, validation);
   }
 
   for (const [actionIndex, nestedAction] of (action.pageActions ?? []).entries()) {
@@ -411,6 +418,9 @@ function resolveActionReusableItems(action, validationSets, validationTemplates)
   const resolvedAction = { ...action };
   if (Array.isArray(resolvedAction.validations)) {
     resolvedAction.validations = resolveValidationItems(resolvedAction.validations, validationSets, validationTemplates);
+  }
+  if (Array.isArray(resolvedAction.postValidations)) {
+    resolvedAction.postValidations = resolveValidationItems(resolvedAction.postValidations, validationSets, validationTemplates);
   }
   if (Array.isArray(resolvedAction.pageActions)) {
     resolvedAction.pageActions = resolvedAction.pageActions.map((nestedAction) =>

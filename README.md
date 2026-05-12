@@ -458,7 +458,17 @@ This action:
 },
 {
   "type": "waitForBuildComplete",
-  "name": "Wait until the app run page is ready"
+  "name": "Wait until the app run page is ready",
+  "postValidations": [
+    {
+      "$template": "elementIsVisibleByLocator",
+      "params": {
+        "name": "Run app root container after build completes",
+        "locator": "#root>div",
+        "timeout": 30000
+      }
+    }
+  ]
 },
 {
   "type": "openRunOnDeviceModal",
@@ -471,6 +481,54 @@ This action:
 ```
 
 After `buildAndRunApp`, the active Playwright page becomes the newly opened run page. Normal JSON-driven validations and actions then run against that run page until you switch back with `switchToMainPage`.
+
+Use `postValidations` when you want to validate something immediately after a page action finishes. Execution order is:
+
+```text
+action -> postValidations / validations -> nested pageActions
+```
+
+The older `validations` property on an action still works and runs after the action. `postValidations` is the preferred clearer name for new action-level checks.
+
+
+## Example: Validate an element inside an iframe
+
+Some app-run content is rendered inside an iframe. For example, the built app preview uses the iframe with id `emulator-iframe`.
+
+To validate an element inside that iframe, add `frameLocator` to the locator configuration. The runner first enters the iframe, then finds the normal locator inside it.
+
+```json
+{
+  "$template": "elementIsVisibleByLocator",
+  "params": {
+    "name": "Run app login button",
+    "locator": "#root div:has-text(\"Login\")",
+    "frameLocator": "#emulator-iframe",
+    "timeout": 30000
+  }
+}
+```
+
+You can also use `frameLocator` directly in a full locator object:
+
+```json
+{
+  "name": "Run app login button is visible",
+  "locator": {
+    "strategy": "locator",
+    "locator": "#root div:has-text(\"Login\")",
+    "frameLocator": "#emulator-iframe"
+  },
+  "assertions": [
+    {
+      "type": "visible",
+      "timeout": 30000
+    }
+  ]
+}
+```
+
+Use this when the element is not on the main page, but inside an iframe.
 
 ## Troubleshooting
 

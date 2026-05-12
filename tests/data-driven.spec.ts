@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "./fixtures/app-fixtures";
-import type { TestInfo } from "@playwright/test";
+import type { FrameLocator, TestInfo } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { AppCreationFlows } from "../workflows/AppCreationFlows";
@@ -45,6 +45,8 @@ type LocatorConfig = {
   locator?: string;
   value?: string;
   engine?: "css" | "xpath" | "playwright";
+  /** Optional iframe selector. When provided, the locator is resolved inside that iframe. */
+  frameLocator?: string;
 };
 
 type ActionConfig = {
@@ -70,6 +72,8 @@ type ActionConfig = {
   value?: string | number | boolean;
   locator?: LocatorConfig;
   validations?: ValidationConfig[];
+  /** Preferred alias for validations that run immediately after this action. */
+  postValidations?: ValidationConfig[];
   pageActions?: ActionConfig[];
   expectedExtension?: string;
   expectedFileNameContains?: string;
@@ -317,6 +321,14 @@ function resolveActionReusableItems(
   if (Array.isArray(actionObj.validations)) {
     actionObj.validations = resolveValidationItems(
       actionObj.validations,
+      validationSets,
+      validationTemplates,
+    );
+  }
+
+  if (Array.isArray(actionObj.postValidations)) {
+    actionObj.postValidations = resolveValidationItems(
+      actionObj.postValidations,
       validationSets,
       validationTemplates,
     );
@@ -754,7 +766,12 @@ async function runPageActions(
       await runAction(context, action, undefined, testInfo);
     });
 
-    await runValidations(context, pageCase, action.validations ?? [], testInfo);
+    const postActionValidations = [
+      ...(action.validations ?? []),
+      ...(action.postValidations ?? []),
+    ];
+
+    await runValidations(context, pageCase, postActionValidations, testInfo);
     await runPageActions(context, pageCase, action.pageActions ?? [], testInfo);
   }
 }
@@ -772,20 +789,29 @@ function buildTargetUrl(pageCase: PageCase, data: TestData): string {
   return new URL(pageCase.path ?? "/", baseUrl).toString();
 }
 
+type LocatorRoot = Page | FrameLocator;
+
 function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
+  const frameSelector = locatorConfig.frameLocator?.trim();
+  const root: LocatorRoot = frameSelector ? page.frameLocator(frameSelector) : page;
+
+  return buildLocatorFromRoot(root, locatorConfig);
+}
+
+function buildLocatorFromRoot(root: LocatorRoot, locatorConfig: LocatorConfig): Locator {
   let locator: Locator;
 
   switch (locatorConfig.strategy) {
     case "id": {
       if (!locatorConfig.id) throw new Error('id locator requires "id".');
-      locator = page.locator(
+      locator = root.locator(
         `[id="${escapeCssAttributeValue(locatorConfig.id)}"]`,
       );
       break;
     }
     case "role": {
       if (!locatorConfig.role) throw new Error('role locator requires "role".');
-      locator = page.getByRole(
+      locator = root.getByRole(
         locatorConfig.role as never,
         {
           name: locatorConfig.name,
@@ -798,7 +824,7 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
     case "text": {
       if (!locatorConfig.text) throw new Error('text locator requires "text".');
       if (locatorConfig.role) {
-        locator = page.getByRole(
+        locator = root.getByRole(
           locatorConfig.role as never,
           {
             name: locatorConfig.name ?? locatorConfig.text,
@@ -807,7 +833,7 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
           } as never,
         );
       } else {
-        locator = page.getByText(locatorConfig.text, {
+        locator = root.getByText(locatorConfig.text, {
           exact: locatorConfig.exact,
         });
       }
@@ -816,23 +842,25 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
     case "label": {
       if (!locatorConfig.text)
         throw new Error('label locator requires "text".');
-      locator = page.getByLabel(locatorConfig.text, {
+      locator = root.getByLabel(locatorConfig.text, {
         exact: locatorConfig.exact,
       });
       break;
     }
     case "img": {
-      if (!locatorConfig.text)
-        throw new Error('label locator requires "img".');
-      locator = page.getByRole('img', {
-        name: locatorConfig.name,
+      const imgName = locatorConfig.name ?? locatorConfig.text;
+      if (!imgName) throw new Error('img locator requires "name" or "text".');
+      console.log(`  >> Waiting for img locator with name: ${imgName}`);
+      locator = root.getByRole("img", {
+        name: imgName,
+        exact: locatorConfig.exact,
       });
       break;
     }
     case "placeholder": {
       if (!locatorConfig.text)
         throw new Error('placeholder locator requires "text".');
-      locator = page.getByPlaceholder(locatorConfig.text, {
+      locator = root.getByPlaceholder(locatorConfig.text, {
         exact: locatorConfig.exact,
       });
       break;
@@ -840,7 +868,7 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
     case "altText": {
       if (!locatorConfig.text)
         throw new Error('altText locator requires "text".');
-      locator = page.getByAltText(locatorConfig.text, {
+      locator = root.getByAltText(locatorConfig.text, {
         exact: locatorConfig.exact,
       });
       break;
@@ -848,7 +876,7 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
     case "title": {
       if (!locatorConfig.text)
         throw new Error('title locator requires "text".');
-      locator = page.getByTitle(locatorConfig.text, {
+      locator = root.getByTitle(locatorConfig.text, {
         exact: locatorConfig.exact,
       });
       break;
@@ -856,13 +884,13 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
     case "testId": {
       if (!locatorConfig.testId)
         throw new Error('testId locator requires "testId".');
-      locator = page.getByTestId(locatorConfig.testId);
+      locator = root.getByTestId(locatorConfig.testId);
       break;
     }
     case "css": {
       if (!locatorConfig.selector)
         throw new Error('css locator requires "selector".');
-      locator = page.locator(locatorConfig.selector, {
+      locator = root.locator(locatorConfig.selector, {
         hasText: locatorConfig.hasText,
       });
       break;
@@ -870,13 +898,13 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
     case "xpath": {
       if (!locatorConfig.selector)
         throw new Error('xpath locator requires "selector".');
-      locator = page.locator(`xpath=${locatorConfig.selector}`);
+      locator = root.locator(`xpath=${locatorConfig.selector}`);
       break;
     }
     case "locator": {
       if (!locatorConfig.locator)
         throw new Error('locator strategy requires "locator".');
-      locator = page.locator(locatorConfig.locator);
+      locator = root.locator(locatorConfig.locator);
       break;
     }
     case "custom": {
@@ -890,7 +918,7 @@ function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
         locatorConfig.engine === "xpath" && !customLocator.startsWith("xpath=")
           ? `xpath=${customLocator}`
           : customLocator;
-      locator = page.locator(selector);
+      locator = root.locator(selector);
       break;
     }
     default: {
