@@ -6,19 +6,196 @@
     "softAssertions": false
   },
   "tokens": {
-    "appName": "FigmaSampleImport",
+    "appName": "pay101V2DemoApp",
+    "templateName": "pay101V2DemoApp",
+    "templateId": "cb1e24ce-42a1-4820-b9fc-d4979ab87ef6",
     "figmaUrl": "https://www.figma.com/design/oqD2rTJHlIifgedF0RHIa6/Food-Couriers---Food-Delivery-App---UI-UX-Design-Case-Study--Community---Copy---Copy---Copy-?node-id=2-10659&m=dev",
-    "homePageTitle": "Symplr.io - Low-Code App Builder",
+    "prompt": "Build hello world app with a button that shows an alert when clicked",
+    "homePageTitle": "Manage and Build Apps | Symplr",
     "dashboardUrlSegment": "/dashboard",
     "buildAppsHeading": "Build apps with a blueprint.",
     "speedText": "The speed of AI, with the structure to scale.",
     "importFromFigmaButton": "Import from Figma",
     "startBuildingButton": "Start Building",
     "createFromTemplateText": "Create from Template",
+    "downloadAppDefinitionButtonText": "Download App Definition",
     "blueprintText": "Blueprint",
     "startNodeText": "Start",
     "screensText": "Screens",
-    "themesText": "Themes"
+    "themesText": "Themes",
+    "runOnDeviceText": "Run App on Your Device",
+    "connectExpoImageAlt": "Connect Expo"
+  },
+  "scenarioDefinitions": {
+    "prompt": {
+      "description": "Create a new app from a text prompt. Change selectors/text here if the prompt flow changes.",
+      "beforeValidateActions": [
+        {
+          "type": "fill",
+          "name": "Enter app prompt",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Write your future app idea",
+            "exact": true
+          },
+          "value": "${scenarioConfig.prompt}"
+        },
+        {
+          "type": "click",
+          "name": "Click Start Building",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.startBuildingButton}",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    },
+    "figma": {
+      "description": "Create a new app by importing Figma screens. Change selectors/text here if the Figma import flow changes.",
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Open Import from Figma dialog",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.importFromFigmaButton}",
+            "exact": true
+          }
+        },
+        {
+          "type": "fill",
+          "name": "Enter Figma design URL",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "https://www.figma.com/design/zoxen",
+            "exact": true
+          },
+          "value": "${scenarioConfig.figmaUrl}"
+        },
+        {
+          "type": "click",
+          "name": "Click Import",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Import",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$template": "textIsVisible",
+          "params": {
+            "text": "Setting Up the App, Hang Tight!",
+            "timeout": 30000
+          }
+        },
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    },
+    "existingApp": {
+      "description": "Open an existing app from the dashboard search results. Change selectors/text here if the search/open flow changes.",
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Focus app search input",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Search",
+            "exact": true
+          }
+        },
+        {
+          "type": "fill",
+          "name": "Search for existing app",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Search",
+            "exact": true
+          },
+          "value": "${scenarioConfig.appName}"
+        },
+        {
+          "type": "click",
+          "name": "Open existing app from search result",
+          "locator": {
+            "strategy": "text",
+            "text": "${scenarioConfig.appName}",
+            "exact": true,
+            "first": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    },
+    "template": {
+      "description": "Create a new app from a template. This is intentionally JSON-only so update these actions to match the real template UI when needed.",
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Open Create from Template section",
+          "locator": {
+            "strategy": "locator",
+            "locator": "p:has-text(\"Create from Template\")",
+            "exact": true
+          }
+        },
+        {
+          "type": "fill",
+          "name": "Search for existing template",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Search",
+            "exact": true
+          },
+          "value": "pay101V2DemoApp"
+        },
+        {
+          "type": "click",
+          "name": "Open existing template from search result",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[data-template-id=\"${tokens.templateId}\"]",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "name": "Open existing template from search result",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Continue",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    }
   },
   "validationTemplates": {
     "elementIsVisibleById": {
@@ -32,6 +209,24 @@
           "type": "visible"
         }
       ]
+    },
+    "elementIsVisible": {
+      "defaults": {
+        "timeout": 60000
+      },
+      "template": {
+        "name": "Validate '${param.name}' element is visible",
+        "locator": {
+          "strategy": "${param.strategy}",
+          "name": "${param.name}"
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
     },
     "textIsVisibleById": {
       "name": "Validate '${param.text}' text is visible",
@@ -84,19 +279,6 @@
           }
         ]
       }
-    },
-    "textIsVisible_OLD": {
-      "name": "Validate '${param.text}' text is visible",
-      "locator": {
-        "strategy": "text",
-        "text": "${param.text}",
-        "exact": true
-      },
-      "assertions": [
-        {
-          "type": "visible"
-        }
-      ]
     },
     "textIsVisible": {
       "defaults": {
@@ -181,14 +363,16 @@
     "elementIsVisibleByLocator": {
       "defaults": {
         "timeout": 5000,
-        "first": false
+        "first": false,
+        "frameLocator": ""
       },
       "template": {
         "name": "Validate '${param.name}' is visible",
         "locator": {
-            "strategy": "locator",
-            "locator": "${param.locator}",
-            "first": "${params.first}"
+          "strategy": "locator",
+          "locator": "${param.locator}",
+          "first": "${params.first}",
+          "frameLocator": "${param.frameLocator}"
         },
         "assertions": [
           {
@@ -324,6 +508,22 @@
         "params": {
           "text": "${tokens.startNodeText}"
         }
+      },
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "${tokens.downloadAppDefinitionButtonText} button",
+          "locator": "div[aria-label=\"${tokens.downloadAppDefinitionButtonText}\"]",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "First page of the app",
+          "locator": "div[data-id=\"start\"] + div[data-id^=\"screen:\"]",
+          "timeout": 30000
+        }
       }
     ],
     "pagesScreen": [
@@ -420,6 +620,41 @@
           "first": true
         }
       }
+    ],
+    "appDefinitionValidation": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "${tokens.downloadAppDefinitionButtonText} button",
+          "locator": "div[aria-label=\"${tokens.downloadAppDefinitionButtonText}\"]",
+          "timeout": 30000
+        }
+      }
+    ],
+    "appRunQrCodeModal": [
+      {
+        "$template": "validateElementState",
+        "params": {
+          "name": "Connect Expo QR code",
+          "locator": {
+            "strategy": "role",
+            "role": "img",
+            "name": "${tokens.connectExpoImageAlt}",
+            "exact": true
+          },
+          "assertion": "visible",
+          "timeout": 60000
+        }
+      }
+    ],
+    "storyboardReady": [
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Home",
+          "timeout": 300000
+        }
+      }
     ]
   },
   "testCases": [
@@ -480,12 +715,12 @@
       ]
     },
     {
-      "name": "Existing app loads correctly",
+      "name": "Build an app from a text prompt",
       "enabled": true,
-      "scenario": "existingApp",
+      "scenario": "prompt",
       "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
+        "type": "prompt",
+        "prompt": "${tokens.prompt}"
       },
       "pageAssertions": [
         {
@@ -500,7 +735,7 @@
       ]
     },
     {
-      "name": "Create app using Figma",
+      "name": "Build an app from Figma screens",
       "enabled": true,
       "scenario": "figma",
       "scenarioConfig": {
@@ -521,7 +756,47 @@
       ]
     },
     {
-      "name": "Storyboard validation: Validate 'Blueprint' option",
+      "name": "Build an app from a template",
+      "enabled": true,
+      "scenario": "template",
+      "scenarioConfig": {
+        "type": "template",
+        "templateName": "${tokens.templateName}"
+      },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Load an existing app into the Symplr storyboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Open Blueprint screen from storyboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -542,10 +817,19 @@
         {
           "$ref": "blueprintScreen"
         }
+      ],
+      "pageActions": [
+        {
+          "type": "downloadAppDefinition",
+          "name": "Download and validate appDefinition JSON file",
+          "expectedExtension": ".json",
+          "validateJson": true,
+          "minBytes": 1
+        }
       ]
     },
     {
-      "name": "Storyboard validation: Validate 'Pages' option",
+      "name": "Open Pages screen from storyboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -570,6 +854,14 @@
           "params": {
             "name": "first page preview screen",
             "locator": "#PreviewScreen-main"
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "first element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator",
+            "first": true
           }
         }
       ],
@@ -598,7 +890,7 @@
       ]
     },
     {
-      "name": "Storyboard validation: Validate 'Themes' option",
+      "name": "Open Themes screen from storyboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -622,7 +914,7 @@
       ]
     },
     {
-      "name": "Storyboard validation: Validate 'Variables' option",
+      "name": "Open Variables screen from storyboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -646,7 +938,7 @@
       ]
     },
     {
-      "name": "Storyboard validation: Validate 'Settings' option",
+      "name": "Open Settings screen from storyboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -715,18 +1007,6 @@
               "$template": "textIsVisible",
               "params": {
                 "text": "Advance Settings"
-              }
-            },
-            {
-              "$template": "elementValueIsEquals",
-              "params": {
-                "name": "App Name",
-                "locator": {
-                  "strategy": "role",
-                  "role": "textbox",
-                  "name": "name"
-                },
-                "value": "${tokens.appName}"
               }
             }
           ]
@@ -802,7 +1082,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Simulation Detection helps protect your app by identifying if it’s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
+                "text": "Simulation Detection helps protect your app by identifying if it\u2019s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
               }
             },
             {
@@ -826,7 +1106,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Root Device Detection helps protect your app by detecting if it’s running on a rooted device, reducing the risk of data breaches and unauthorized access."
+                "text": "Root Device Detection helps protect your app by detecting if it\u2019s running on a rooted device, reducing the risk of data breaches and unauthorized access."
               }
             },
             {
@@ -850,7 +1130,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device’s console, helping protect against data leaks and improving overall app security."
+                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device\u2019s console, helping protect against data leaks and improving overall app security."
               }
             }
           ],
@@ -1102,6 +1382,318 @@
             }
           ]
         }
+      ]
+    },
+    {
+      "name": "Validate that code can be sent by email from Developer Options",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "downloadCodeFromEmail",
+          "name": "Click Download and validate code ZIP from email",
+          "expectedEmailSubject": "Download Code",
+          "timeout": 180000,
+          "pollIntervalMs": 5000,
+          "expectedExtension": ".zip",
+          "minBytes": 1
+        }
+      ]
+    },
+    {
+      "name": "Validate that code can be pushed to GitHub from Developer Options",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "connectToGitHub",
+          "name": "Connect to GitHub",
+          "expectedEmailSubject": "Push Code Github",
+          "timeout": 300000,
+          "pollIntervalMs": 5000,
+          "expectedExtension": ".zip",
+          "minBytes": 1
+        }
+      ]
+    },
+    {
+      "name": "Validate that the app can be built and run from the storyboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "buildAndRunApp",
+          "name": "Click Build and switch to the app run page"
+        },
+        {
+          "type": "waitForBuildComplete",
+          "name": "Wait until the app run page is ready",
+          "postValidations": [
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> root container is visible after build completes",
+                "locator": "#root>div",
+                "first": true,
+                "timeout": 30000
+              }
+            },
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> login button is visible after build completes",
+                "locator": "#root [data-testid=\"textInput-mobileNumber\"]",
+                "timeout": 300000,
+                "frameLocator": "#emulator-iframe"
+              }
+            },
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> login button is visible after build completes",
+                "locator": "#root [data-testid=\"textInput-textInput-password\"]",
+                "timeout": 30000,
+                "frameLocator": "#emulator-iframe"
+              }
+            },
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> login button is visible after build completes",
+                "locator": "#root [data-testid=\"label-Login\"]",
+                "timeout": 30000,
+                "frameLocator": "#emulator-iframe"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Validate Generating a QR code to run the app on a real device after app is built",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "buildAndRunApp",
+          "name": "Click Build and switch to the app run page"
+        },
+        {
+          "type": "waitForBuildComplete",
+          "name": "Wait until the app run page is ready",
+          "postValidations": [
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> root container is visible after build completes",
+                "locator": "#root>div",
+                "first": true,
+                "timeout": 30000
+              }
+            },
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> login button is visible after build completes",
+                "locator": "#root [data-testid=\"textInput-mobileNumber\"]",
+                "timeout": 300000,
+                "frameLocator": "#emulator-iframe"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[aria-label=\"Run App on Your Device\"]"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Run the App on Your Device"
+              }
+            },
+            {
+              "$template": "elementIsVisible",
+              "params": {
+                "strategy": "img",
+                "name": "Connect Expo",
+                "timeout": 90000
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Generate a QR code to run the app on a real device on build page",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[aria-label=\"Run App on Your Device\"]"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Run the App on Your Device"
+              }
+            },
+            {
+              "$template": "elementIsVisible",
+              "params": {
+                "strategy": "img",
+                "name": "Connect Expo",
+                "timeout": 90000
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "End to End scenario test using existing app",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "includeTestCases": [
+        "Open Blueprint screen from storyboard",
+        "Open Pages screen from storyboard",
+        "Open Themes screen from storyboard",
+        "Open Variables screen from storyboard",
+        "Open Settings screen from storyboard",
+        "Validate that code can be sent by email from Developer Options",
+        "Validate that code can be pushed to GitHub from Developer Options",
+        "Validate that the app can be built and run from the storyboard",
+        "Generate a QR code to run the app on a real device on build page"
+      ]
+    },
+    {
+      "name": "End to End scenario test using template",
+      "enabled": true,
+      "scenario": "template",
+      "scenarioConfig": {
+        "type": "template",
+        "templateName": "${tokens.templateName}"
+      },
+      "includeTestCases": [
+        "Open Blueprint screen from storyboard",
+        "Open Pages screen from storyboard",
+        "Open Themes screen from storyboard",
+        "Open Variables screen from storyboard",
+        "Open Settings screen from storyboard",
+        "Validate that code can be sent by email from Developer Options",
+        "Validate that code can be pushed to GitHub from Developer Options",
+        "Validate that the app can be built and run from the storyboard",
+        "Generate a QR code to run the app on a real device on build page"
+      ]
+    },
+    {
+      "name": "End to End scenario test using Figma",
+      "enabled": true,
+      "scenario": "figma",
+      "scenarioConfig": {
+        "type": "figma",
+        "figmaUrl": "${tokens.figmaUrl}",
+        "figmaAppName": "${tokens.appName}"
+      },
+      "includeTestCases": [
+        "Open Blueprint screen from storyboard",
+        "Open Pages screen from storyboard",
+        "Open Themes screen from storyboard",
+        "Open Variables screen from storyboard",
+        "Open Settings screen from storyboard",
+        "Validate that code can be sent by email from Developer Options",
+        "Validate that code can be pushed to GitHub from Developer Options"
       ]
     }
   ]

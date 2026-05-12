@@ -4,7 +4,9 @@ import path from 'node:path';
 
 const filePath = process.argv[2] ?? 'test-data/symplr_pages.json';
 const absolutePath = path.resolve(process.cwd(), filePath);
-const rawData = JSON.parse(fs.readFileSync(absolutePath, 'utf-8').replace(/^\uFEFF/, ''));
+const rawData = JSON.parse(
+  fs.readFileSync(absolutePath, 'utf-8').replace(/^\uFEFF/, '')
+);
 
 const errors = [];
 let data = rawData;
@@ -14,9 +16,53 @@ try {
   errors.push(error instanceof Error ? error.message : String(error));
 }
 
-const locatorStrategies = new Set(['id', 'role', 'text', 'label', 'placeholder', 'altText', 'title', 'testId', 'css', 'xpath', 'locator', 'custom']);
-const actions = new Set(['click', 'fill', 'check', 'uncheck', 'hover', 'press', 'selectOption']);
-const pageAssertions = new Set(['titleEquals', 'titleContains', 'urlEquals', 'urlContains']);
+const locatorStrategies = new Set([
+  'id',
+  'role',
+  'text',
+  'label',
+  'img',
+  'placeholder',
+  'altText',
+  'title',
+  'testId',
+  'css',
+  'xpath',
+  'locator',
+  'custom',
+]);
+const actions = new Set([
+  'click',
+  'fill',
+  'check',
+  'uncheck',
+  'hover',
+  'press',
+  'selectOption',
+  'download',
+  'downloadAppDefinition',
+  'downloadCodeFromEmail',
+  'connectToGitHub',
+  'buildAndRunApp',
+  'waitForBuildComplete',
+  'openRunOnDeviceModal',
+  'waitForQrCodeGenerated',
+  'switchToMainPage',
+  'switchToRunPage',
+]);
+const includeSections = new Set([
+  'beforeValidateActions',
+  'pageAssertions',
+  'validations',
+  'pageActions',
+  'includeTestCases',
+]);
+const pageAssertions = new Set([
+  'titleEquals',
+  'titleContains',
+  'urlEquals',
+  'urlContains',
+]);
 const locatorAssertions = new Set([
   'visible',
   'hidden',
@@ -34,7 +80,7 @@ const locatorAssertions = new Set([
   'countEquals',
   'countGreaterThan',
   'classContains',
-  'cssEquals'
+  'cssEquals',
 ]);
 const needsExpected = new Set([
   'titleEquals',
@@ -48,7 +94,7 @@ const needsExpected = new Set([
   'countEquals',
   'countGreaterThan',
   'classContains',
-  'cssEquals'
+  'cssEquals',
 ]);
 
 const testCases = Array.isArray(data.testCases) ? data.testCases : data.pages;
@@ -56,35 +102,84 @@ if (!Array.isArray(testCases) || testCases.length === 0) {
   errors.push('Root property "testCases" must be a non-empty array.');
 }
 
+const testCaseNameCounts = new Map();
+for (const pageCase of testCases ?? []) {
+  if (!pageCase?.name) continue;
+  testCaseNameCounts.set(pageCase.name, (testCaseNameCounts.get(pageCase.name) ?? 0) + 1);
+}
+for (const [name, count] of testCaseNameCounts.entries()) {
+  if (count > 1) errors.push(`Duplicate test case name: ${name}`);
+}
+const testCaseNames = new Set(testCaseNameCounts.keys());
+
+
+const scenarioDefinitions = data.scenarioDefinitions ?? {};
+if (scenarioDefinitions !== undefined && (scenarioDefinitions === null || typeof scenarioDefinitions !== 'object' || Array.isArray(scenarioDefinitions))) {
+  errors.push('Root property "scenarioDefinitions" must be an object when provided.');
+}
+
+for (const [scenarioName, scenarioDefinition] of Object.entries(scenarioDefinitions)) {
+  validateScenarioDefinition(`scenarioDefinitions.${scenarioName}`, scenarioDefinition);
+}
+
 for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
   const prefix = `testCases[${pageIndex}] (${pageCase?.name ?? 'unnamed'})`;
-  if (!pageCase.name) errors.push(`${prefix}: missing name.`);
-  if (!pageCase.path && !pageCase.url && !pageCase.scenario) {
+  if (!pageCase?.name) errors.push(`${prefix}: missing name.`);
+  if (!pageCase?.path && !pageCase?.url && !pageCase?.scenario) {
     errors.push(`${prefix}: provide path, url, or scenario.`);
   }
-  if (pageCase.scenario && !pageCase.scenarioConfig) {
-    errors.push(`${prefix}: scenario is defined but scenarioConfig is missing.`);
+  if (pageCase?.scenario && !scenarioDefinitions[pageCase.scenario]) {
+    errors.push(`${prefix}: scenario definition not found for "${pageCase.scenario}".`);
   }
-  if (!Array.isArray(pageCase.validations) || pageCase.validations.length === 0) {
-    errors.push(`${prefix}: validations must be a non-empty array.`);
+  if (pageCase?.scenarioConfig !== undefined && (pageCase.scenarioConfig === null || typeof pageCase.scenarioConfig !== 'object' || Array.isArray(pageCase.scenarioConfig))) {
+    errors.push(`${prefix}: scenarioConfig must be an object when provided.`);
+  }
+  if (pageCase?.scenario && scenarioDefinitions[pageCase.scenario]) {
+    const requiredScenarioConfigKeys = collectScenarioConfigPlaceholders(scenarioDefinitions[pageCase.scenario]);
+    for (const key of requiredScenarioConfigKeys) {
+      if (!hasNestedProperty(pageCase.scenarioConfig ?? {}, key)) {
+        errors.push(
+          `${prefix}: scenario "${pageCase.scenario}" requires scenarioConfig.${key} because scenarioDefinitions.${pageCase.scenario} references "${'${'}scenarioConfig.${key}}".`
+        );
+      }
+    }
   }
 
-  for (const [actionIndex, action] of (pageCase.beforeValidateActions ?? []).entries()) {
+  const hasExecutableContent =
+    hasItems(pageCase?.beforeValidateActions) ||
+    hasItems(pageCase?.pageAssertions) ||
+    hasItems(pageCase?.validations) ||
+    hasItems(pageCase?.pageActions) ||
+    hasItems(pageCase?.includeTestCases);
+
+  if (!hasExecutableContent) {
+    errors.push(
+      `${prefix}: provide at least one of validations, pageActions, pageAssertions, beforeValidateActions, or includeTestCases.`
+    );
+  }
+
+  for (const [actionIndex, action] of (pageCase?.beforeValidateActions ?? []).entries()) {
     validateAction(`${prefix}.beforeValidateActions[${actionIndex}]`, action);
   }
 
-  for (const [assertionIndex, assertion] of (pageCase.pageAssertions ?? []).entries()) {
+  for (const [assertionIndex, assertion] of (pageCase?.pageAssertions ?? []).entries()) {
     validateAssertion(`${prefix}.pageAssertions[${assertionIndex}]`, assertion, pageAssertions);
   }
 
-  for (const [validationIndex, validation] of (pageCase.validations ?? []).entries()) {
+  for (const [validationIndex, validation] of (pageCase?.validations ?? []).entries()) {
     validateValidation(`${prefix}.validations[${validationIndex}]`, validation);
   }
 
-  for (const [actionIndex, action] of (pageCase.pageActions ?? []).entries()) {
+  for (const [actionIndex, action] of (pageCase?.pageActions ?? []).entries()) {
     validateAction(`${prefix}.pageActions[${actionIndex}]`, action);
   }
+
+  for (const [includeIndex, include] of (pageCase?.includeTestCases ?? []).entries()) {
+    validateTestCaseInclude(`${prefix}.includeTestCases[${includeIndex}]`, include, pageCase.name, []);
+  }
 }
+
+validateIncludeCycles(testCases ?? []);
 
 if (errors.length > 0) {
   console.error('Invalid test data:');
@@ -94,20 +189,145 @@ if (errors.length > 0) {
 
 console.log(`Test data looks valid: ${absolutePath}`);
 
+function hasItems(value) {
+  return Array.isArray(value) && value.length > 0;
+}
+
+function collectScenarioConfigPlaceholders(value, found = new Set()) {
+  if (Array.isArray(value)) {
+    for (const item of value) collectScenarioConfigPlaceholders(item, found);
+    return found;
+  }
+
+  if (typeof value === 'string') {
+    for (const match of value.matchAll(/\$\{scenarioConfig\.([a-zA-Z0-9_.]+)\}/g)) {
+      found.add(match[1]);
+    }
+    return found;
+  }
+
+  if (value && typeof value === 'object') {
+    for (const item of Object.values(value)) collectScenarioConfigPlaceholders(item, found);
+  }
+
+  return found;
+}
+
+function hasNestedProperty(value, key) {
+  const pathParts = key.split('.');
+  let current = value;
+
+  for (const part of pathParts) {
+    if (current === null || typeof current !== 'object' || !(part in current)) {
+      return false;
+    }
+    current = current[part];
+  }
+
+  return true;
+}
+
+function validateScenarioDefinition(prefix, scenarioDefinition) {
+  if (!scenarioDefinition || typeof scenarioDefinition !== 'object' || Array.isArray(scenarioDefinition)) {
+    errors.push(`${prefix}: scenario definition must be an object.`);
+    return;
+  }
+
+  if (scenarioDefinition.description !== undefined && typeof scenarioDefinition.description !== 'string') {
+    errors.push(`${prefix}.description: must be a string.`);
+  }
+
+  for (const [actionIndex, action] of (scenarioDefinition.beforeValidateActions ?? []).entries()) {
+    validateAction(`${prefix}.beforeValidateActions[${actionIndex}]`, action);
+  }
+
+  for (const [assertionIndex, assertion] of (scenarioDefinition.pageAssertions ?? []).entries()) {
+    validateAssertion(`${prefix}.pageAssertions[${assertionIndex}]`, assertion, pageAssertions);
+  }
+
+  for (const [validationIndex, validation] of (scenarioDefinition.validations ?? []).entries()) {
+    validateValidation(`${prefix}.validations[${validationIndex}]`, validation);
+  }
+
+  for (const [actionIndex, action] of (scenarioDefinition.pageActions ?? []).entries()) {
+    validateAction(`${prefix}.pageActions[${actionIndex}]`, action);
+  }
+}
+
+function validateTestCaseInclude(prefix, include, ownerName) {
+  let includeName;
+  let sections;
+
+  if (typeof include === 'string') {
+    includeName = include;
+  } else if (include && typeof include === 'object') {
+    includeName = include.name;
+    sections = include.sections;
+  } else {
+    errors.push(`${prefix}: include must be a test case name string or an object with name.`);
+    return;
+  }
+
+  if (!includeName || typeof includeName !== 'string') {
+    errors.push(`${prefix}: include name must be a non-empty string.`);
+    return;
+  }
+  if (!testCaseNames.has(includeName)) {
+    errors.push(`${prefix}: included test case not found: ${includeName}.`);
+  }
+  if (includeName === ownerName) {
+    errors.push(`${prefix}: test case cannot include itself.`);
+  }
+
+  if (sections !== undefined) {
+    if (!Array.isArray(sections) || sections.length === 0) {
+      errors.push(`${prefix}.sections: must be a non-empty array when provided.`);
+    } else {
+      for (const [sectionIndex, section] of sections.entries()) {
+        if (!includeSections.has(section)) {
+          errors.push(`${prefix}.sections[${sectionIndex}]: unsupported section "${section}".`);
+        }
+      }
+    }
+  }
+}
+
+function validateIncludeCycles(cases) {
+  const byName = new Map(cases.filter((item) => item?.name).map((item) => [item.name, item]));
+
+  function visit(caseName, stack) {
+    if (stack.includes(caseName)) {
+      errors.push(`Circular includeTestCases reference detected: ${[...stack, caseName].join(' -> ')}`);
+      return;
+    }
+    const pageCase = byName.get(caseName);
+    if (!pageCase) return;
+
+    for (const include of pageCase.includeTestCases ?? []) {
+      const includeName = typeof include === 'string' ? include : include?.name;
+      if (includeName) visit(includeName, [...stack, caseName]);
+    }
+  }
+
+  for (const pageCase of cases) {
+    if (pageCase?.name) visit(pageCase.name, []);
+  }
+}
+
 function validateValidation(prefix, validation) {
   const validationPrefix = `${prefix} (${validation?.name ?? 'unnamed'})`;
-  if (!validation.name) errors.push(`${validationPrefix}: missing name.`);
-  validateLocator(`${validationPrefix}.locator`, validation.locator);
+  if (!validation?.name) errors.push(`${validationPrefix}: missing name.`);
+  validateLocator(`${validationPrefix}.locator`, validation?.locator);
 
-  for (const [actionIndex, action] of (validation.actions ?? []).entries()) {
+  for (const [actionIndex, action] of (validation?.actions ?? []).entries()) {
     validateAction(`${validationPrefix}.actions[${actionIndex}]`, action);
   }
 
-  if (!Array.isArray(validation.assertions) || validation.assertions.length === 0) {
+  if (!Array.isArray(validation?.assertions) || validation.assertions.length === 0) {
     errors.push(`${validationPrefix}: assertions must be a non-empty array.`);
   }
 
-  for (const [assertionIndex, assertion] of (validation.assertions ?? []).entries()) {
+  for (const [assertionIndex, assertion] of (validation?.assertions ?? []).entries()) {
     validateAssertion(`${validationPrefix}.assertions[${assertionIndex}]`, assertion, locatorAssertions);
   }
 }
@@ -126,6 +346,9 @@ function validateLocator(prefix, locator) {
   if (['text', 'label', 'placeholder', 'altText', 'title'].includes(locator.strategy) && !locator.text) {
     errors.push(`${prefix}: ${locator.strategy} strategy requires text.`);
   }
+  if (locator.strategy === 'img' && !locator.name && !locator.text) {
+    errors.push(`${prefix}: img strategy requires name or text.`);
+  }
   if (locator.strategy === 'testId' && !locator.testId) errors.push(`${prefix}: testId strategy requires testId.`);
   if (['css', 'xpath'].includes(locator.strategy) && !locator.selector) {
     errors.push(`${prefix}: ${locator.strategy} strategy requires selector.`);
@@ -137,6 +360,9 @@ function validateLocator(prefix, locator) {
   if (locator.engine && !['css', 'xpath', 'playwright'].includes(locator.engine)) {
     errors.push(`${prefix}: engine must be css, xpath, or playwright.`);
   }
+  if (locator.frameLocator !== undefined && typeof locator.frameLocator !== 'string') {
+    errors.push(`${prefix}: frameLocator must be a string iframe selector, for example "#emulator-iframe".`);
+  }
 }
 
 function validateAction(prefix, action) {
@@ -147,10 +373,53 @@ function validateAction(prefix, action) {
   if (['fill', 'press', 'selectOption'].includes(action.type) && action.value === undefined) {
     errors.push(`${prefix}: action "${action.type}" requires value.`);
   }
+  if (action.type === 'download' && !action.locator) {
+    errors.push(`${prefix}: download action requires locator.`);
+  }
   if (action.locator) validateLocator(`${prefix}.locator`, action.locator);
+  if (action.name !== undefined && typeof action.name !== 'string') {
+    errors.push(`${prefix}: name must be a string.`);
+  }
+  if (action.expectedExtension !== undefined && typeof action.expectedExtension !== 'string') {
+    errors.push(`${prefix}: expectedExtension must be a string, for example ".json".`);
+  }
+  if (action.expectedFileNameContains !== undefined && typeof action.expectedFileNameContains !== 'string') {
+    errors.push(`${prefix}: expectedFileNameContains must be a string.`);
+  }
+  if (action.validateJson !== undefined && typeof action.validateJson !== 'boolean') {
+    errors.push(`${prefix}: validateJson must be true or false.`);
+  }
+  if (action.minBytes !== undefined && typeof action.minBytes !== 'number') {
+    errors.push(`${prefix}: minBytes must be a number.`);
+  }
+  if (action.saveAs !== undefined && typeof action.saveAs !== 'string') {
+    errors.push(`${prefix}: saveAs must be a string.`);
+  }
+  if (action.timeout !== undefined && typeof action.timeout !== 'number') {
+    errors.push(`${prefix}: timeout must be a number.`);
+  }
+  if (action.expectedEmailSubject !== undefined && typeof action.expectedEmailSubject !== 'string') {
+    errors.push(`${prefix}: expectedEmailSubject must be a string.`);
+  }
+  if (action.emailFrom !== undefined && typeof action.emailFrom !== 'string') {
+    errors.push(`${prefix}: emailFrom must be a string.`);
+  }
+  if (action.emailTo !== undefined && typeof action.emailTo !== 'string') {
+    errors.push(`${prefix}: emailTo must be a string.`);
+  }
+  if (action.emailBodyContains !== undefined && typeof action.emailBodyContains !== 'string') {
+    errors.push(`${prefix}: emailBodyContains must be a string.`);
+  }
+  if (action.pollIntervalMs !== undefined && typeof action.pollIntervalMs !== 'number') {
+    errors.push(`${prefix}: pollIntervalMs must be a number.`);
+  }
 
   for (const [validationIndex, validation] of (action.validations ?? []).entries()) {
     validateValidation(`${prefix}.validations[${validationIndex}]`, validation);
+  }
+
+  for (const [validationIndex, validation] of (action.postValidations ?? []).entries()) {
+    validateValidation(`${prefix}.postValidations[${validationIndex}]`, validation);
   }
 
   for (const [actionIndex, nestedAction] of (action.pageActions ?? []).entries()) {
@@ -203,10 +472,39 @@ function resolveReusableValidations(value) {
   const validationTemplates = value.validationTemplates ?? {};
   const cases = Array.isArray(value.testCases) ? value.testCases : value.pages;
   if (!Array.isArray(cases)) return value;
+
+  const scenarioDefinitions = value.scenarioDefinitions ?? {};
+  const resolvedScenarioDefinitions = Object.fromEntries(
+    Object.entries(scenarioDefinitions).map(([name, definition]) => [
+      name,
+      resolveScenarioDefinitionReusableItems(definition, validationSets, validationTemplates),
+    ])
+  );
+
   return {
     ...value,
-    testCases: cases.map((pageCase) => resolvePageCaseReusableItems(pageCase, validationSets, validationTemplates))
+    scenarioDefinitions: resolvedScenarioDefinitions,
+    testCases: cases.map((pageCase) => resolvePageCaseReusableItems(pageCase, validationSets, validationTemplates)),
   };
+}
+
+function resolveScenarioDefinitionReusableItems(definition, validationSets, validationTemplates) {
+  if (definition === null || typeof definition !== 'object') return definition;
+  const resolvedDefinition = { ...definition };
+  if (Array.isArray(resolvedDefinition.beforeValidateActions)) {
+    resolvedDefinition.beforeValidateActions = resolvedDefinition.beforeValidateActions.map((action) =>
+      resolveActionReusableItems(action, validationSets, validationTemplates)
+    );
+  }
+  if (Array.isArray(resolvedDefinition.pageActions)) {
+    resolvedDefinition.pageActions = resolvedDefinition.pageActions.map((action) =>
+      resolveActionReusableItems(action, validationSets, validationTemplates)
+    );
+  }
+  if (Array.isArray(resolvedDefinition.validations)) {
+    resolvedDefinition.validations = resolveValidationItems(resolvedDefinition.validations, validationSets, validationTemplates);
+  }
+  return resolvedDefinition;
 }
 
 function resolvePageCaseReusableItems(pageCase, validationSets, validationTemplates) {
@@ -233,6 +531,9 @@ function resolveActionReusableItems(action, validationSets, validationTemplates)
   const resolvedAction = { ...action };
   if (Array.isArray(resolvedAction.validations)) {
     resolvedAction.validations = resolveValidationItems(resolvedAction.validations, validationSets, validationTemplates);
+  }
+  if (Array.isArray(resolvedAction.postValidations)) {
+    resolvedAction.postValidations = resolveValidationItems(resolvedAction.postValidations, validationSets, validationTemplates);
   }
   if (Array.isArray(resolvedAction.pageActions)) {
     resolvedAction.pageActions = resolvedAction.pageActions.map((nestedAction) =>

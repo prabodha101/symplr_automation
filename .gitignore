@@ -6,3 +6,5 @@ playwright/
 .env
 .env.*
 !.env.example
+secrets/*.json
+!secrets/.gitkeep

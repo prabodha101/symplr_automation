@@ -11,8 +11,8 @@ export class ImportFromFigmaPage {
         return this.page.getByRole('textbox', { name: 'https://www.figma.com/design/' });
     }
 
-    private get continueButton() {
-        return this.page.getByRole('button', { name: 'Continue' });
+    private get importButton() {
+        return this.page.getByRole('button', { name: 'Import' });
     }
 
     async importFromFigma(figmaUrl: string, appName: string): Promise<void> {
@@ -23,15 +23,11 @@ export class ImportFromFigmaPage {
 
         await this.figmaUrlInput.click();
         await this.figmaUrlInput.fill(figmaUrl);
-        await expect(this.continueButton).toBeEnabled();
-        await this.continueButton.click();
-
-        await expect(this.page.getByText('Configure App')).toBeVisible();
-
-        await this.page.getByRole('textbox').first().click();
-        await this.page.getByRole('textbox').first().fill(appName);
-        await expect(this.continueButton).toBeEnabled();
-        await this.continueButton.click();
-        await expect(this.page.getByText('Setting Up the App, Hang')).toBeVisible();
+        await expect(this.importButton).toBeEnabled();
+        await this.importButton.click();
+        console.log(`  >> Clicked import after filling Figma URL: ${figmaUrl}`);
+        
+        await expect(this.page.getByText('Setting Up the App, Hang Tight!')).toBeVisible();
+        console.log(`  >> App creation from Figma started for app name: ${appName}`);
     }
 }

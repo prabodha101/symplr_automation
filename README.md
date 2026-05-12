@@ -1,6 +1,286 @@
 # Symplr config-driven Playwright tests
 
-This project runs Symplr UI checks from JSON data instead of creating one Playwright test file per page.
+This project runs Symplr end-to-end UI tests using a JSON-driven test configuration instead of writing a new Playwright spec for every screen or scenario.
+
+The main files are:
+
+```text
+test-data/symplr_pages.json   # test cases, validation sets, templates, actions
+tests/data-driven.spec.ts     # generic Playwright runner
+playwright.config.ts          # Playwright configuration
+.env.example                  # local environment variable template
+```
+
+## Prerequisites
+
+Install these before running the tests:
+
+- Git
+- Node.js 20 or later
+- npm, which is installed with Node.js
+
+Check your versions:
+
+```bash
+node --version
+npm --version
+```
+
+If you use `nvm`, a typical setup is:
+
+```bash
+nvm install 20
+nvm use 20
+```
+
+Node.js 22 LTS is also fine.
+
+## Fresh clone setup
+
+From a clean machine or fresh checkout, run:
+
+```bash
+git clone <repository-url>
+cd <repository-folder>
+```
+
+Install project dependencies from `package-lock.json`:
+
+```bash
+npm ci
+```
+
+If you are actively changing dependencies and do not want to use the lock file strictly, use this instead:
+
+```bash
+npm install
+```
+
+Install Playwright browser binaries:
+
+```bash
+npm run install:browsers
+```
+
+On Linux CI machines, you may need Playwright system dependencies too:
+
+```bash
+npx playwright install --with-deps
+```
+
+## Configure local environment variables
+
+Create your local `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell, use:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Then update `.env` with your local values.
+
+Important variables:
+
+```env
+APP_URL=https://101studio.co/
+PRE_CREATED_APP_NAME=printmessage
+
+GOOGLE_EMAIL=
+GOOGLE_PASSWORD=
+
+EMAIL_SENDER=notification@101digital.io
+GMAIL_CREDENTIALS_PATH=secrets/credentials.json
+GMAIL_TOKEN_PATH=secrets/token.json
+GMAIL_SCOPES=https://www.googleapis.com/auth/gmail.readonly
+GMAIL_REDIRECT_URI=http://127.0.0.1:53682/oauth2callback
+```
+
+### What these values are used for
+
+| Variable | Purpose |
+|---|---|
+| `APP_URL` | Symplr application URL used by Playwright. |
+| `PRE_CREATED_APP_NAME` | Existing app name used by existing-app scenarios. |
+| `GOOGLE_EMAIL` | Login email and Gmail inbox recipient for email-based tests. |
+| `GOOGLE_PASSWORD` | Google login password used by the UI login flow. |
+| `EMAIL_SENDER` | Sender filter for Gmail polling. Leave blank only if you want to match by recipient and subject. |
+| `GMAIL_CREDENTIALS_PATH` | Path to Google OAuth client credentials. |
+| `GMAIL_TOKEN_PATH` | Path where the generated Gmail OAuth token is stored. |
+| `GMAIL_SCOPES` | Gmail API scope used by email validation. |
+| `GMAIL_REDIRECT_URI` | Local OAuth callback used by `npm run gmail:auth`. |
+
+Do not commit `.env`, `secrets/credentials.json`, `secrets/token.json`, or `playwright/.auth/user.json`.
+
+## Gmail setup for email-based tests
+
+Some tests validate email workflows, such as downloading code from an email link. Those tests need Gmail API access.
+
+Email-based tests include flows such as:
+
+```text
+Validate that code can be sent by email from Developer Options
+End to End scenario test
+```
+
+To configure Gmail access:
+
+1. Create or obtain a Google OAuth client credentials file.
+2. Save it as:
+
+```text
+secrets/credentials.json
+```
+
+3. Make sure `.env` points to it:
+
+```env
+GMAIL_CREDENTIALS_PATH=secrets/credentials.json
+GMAIL_TOKEN_PATH=secrets/token.json
+```
+
+4. Generate the Gmail token:
+
+```bash
+npm run gmail:auth
+```
+
+5. Open the authorization URL printed in the terminal.
+6. Sign in with the Gmail account used in `GOOGLE_EMAIL`.
+7. Approve access.
+8. Confirm that this file was created:
+
+```text
+secrets/token.json
+```
+
+The test code refreshes the Gmail access token automatically when possible. If Google says the refresh token is expired or revoked, run `npm run gmail:auth` again to generate a new token.
+
+## Validate the JSON test data
+
+Before running browser tests, validate the JSON configuration:
+
+```bash
+npm run validate:data
+```
+
+This checks:
+
+- `test-data/symplr_pages.json` syntax
+- tokens
+- validation templates
+- validation sets
+- included test cases
+- locators
+- assertions
+- configured actions
+
+A successful result looks like:
+
+```text
+Test data looks valid: <path>/test-data/symplr_pages.json
+```
+
+## Run tests
+
+Run all tests:
+
+```bash
+npm test
+```
+
+Run tests with the browser visible:
+
+```bash
+npm run test:headed
+```
+
+Open Playwright UI mode:
+
+```bash
+npm run test:ui
+```
+
+Open the latest HTML report:
+
+```bash
+npm run report
+```
+
+## Run a specific test case
+
+Use Playwright's `-g` grep option with the test name from `test-data/symplr_pages.json`.
+
+Examples:
+
+```bash
+npx playwright test -g "Storyboard validation: Validate 'Pages' option"
+```
+
+```bash
+npx playwright test -g "Download app definition file successfully"
+```
+
+```bash
+npx playwright test -g "End to End scenario test"
+```
+
+For headed mode:
+
+```bash
+npx playwright test -g "End to End scenario test" --headed
+```
+
+## Authentication behavior
+
+The project uses a reusable authenticated browser session.
+
+On the first run, Playwright logs in using:
+
+```env
+GOOGLE_EMAIL=
+GOOGLE_PASSWORD=
+```
+
+After login, it saves the authenticated session to:
+
+```text
+playwright/.auth/user.json
+```
+
+Future test runs reuse that file if the session is still valid.
+
+If login behaves unexpectedly or the saved session expires, delete the saved auth file and run the test again:
+
+```bash
+rm -f playwright/.auth/user.json
+```
+
+On Windows PowerShell:
+
+```powershell
+Remove-Item playwright/.auth/user.json -ErrorAction SilentlyContinue
+```
+
+## Project scripts
+
+These scripts are available in `package.json`:
+
+| Command | What it does |
+|---|---|
+| `npm test` | Runs all Playwright tests. |
+| `npm run test:headed` | Runs tests with the browser visible. |
+| `npm run test:ui` | Opens Playwright UI mode. |
+| `npm run report` | Opens the HTML test report. |
+| `npm run install:browsers` | Installs Playwright browsers. |
+| `npm run validate:data` | Validates `test-data/symplr_pages.json`. |
+| `npm run gmail:auth` | Generates or refreshes Gmail OAuth token file. |
+
+## How the config-driven tests work
 
 The main test data file is:
 
@@ -14,247 +294,119 @@ The generic runner is:
 tests/data-driven.spec.ts
 ```
 
-## Current approach
+The JSON file supports:
 
-The project supports two reusable concepts:
+- `tokens` for reusable values
+- `validationTemplates` for reusable parameterized validation patterns
+- `validationSets` for reusable groups of validations
+- `scenarioDefinitions` for reusable scenario flows such as `prompt`, `figma`, `template`, and `existingApp`
+- `testCases` for the actual runnable tests
+- `includeTestCases` for composing an end-to-end test from existing test cases
+- `beforeValidateActions` and `pageActions` for configured user interactions
 
-1. `validationSets` for reusing a whole group of validations exactly as-is.
-2. `validationTemplates` for reusing a validation pattern with different parameters.
+## Reusable scenario definitions
 
-The latest change makes templates locator-agnostic. A template can now receive the whole locator object as a parameter, so the same validation can work with elements found by `id`, role, text, CSS, XPath, or a fully custom Playwright locator.
-
-## Recommended pattern for reusable validations
-
-Define the validation once:
+The app-loading scenarios are also configuration driven. Each test case still chooses a scenario by name:
 
 ```json
-"validationTemplates": {
-  "visibleElement": {
-    "defaults": {
-      "timeout": 5000
-    },
-    "template": {
-      "name": "Validate '${param.name}' is visible",
-      "locator": "${param.locator}",
-      "assertions": [
-        {
-          "type": "visible",
-          "timeout": "${param.timeout}"
-        }
-      ]
-    }
+{
+  "name": "Open Blueprint screen from storyboard",
+  "enabled": true,
+  "scenario": "existingApp",
+  "scenarioConfig": {
+    "type": "existingApp",
+    "appName": "${tokens.appName}"
   }
 }
 ```
 
-Then reuse it anywhere in a page, validation set, or action-level validation:
+The actual steps for `existingApp` live in the top-level `scenarioDefinitions` section of `test-data/symplr_pages.json`:
 
 ```json
-{
-  "$template": "visibleElement",
-  "params": {
-    "name": "Build apps heading",
-    "locator": {
-      "strategy": "id",
-      "id": "build-apps-heading"
-    }
+"scenarioDefinitions": {
+  "existingApp": {
+    "beforeValidateActions": [
+      {
+        "type": "fill",
+        "name": "Search for existing app",
+        "locator": {
+          "strategy": "role",
+          "role": "textbox",
+          "name": "Search",
+          "exact": true
+        },
+        "value": "${scenarioConfig.appName}"
+      }
+    ],
+    "validations": [
+      { "$ref": "storyboardReady" }
+    ]
   }
 }
 ```
 
-## Examples with different locator types
+Use `${scenarioConfig.fieldName}` inside a scenario definition to read values from the test case's `scenarioConfig`. For example:
 
-### By id
+- `${scenarioConfig.appName}` for `existingApp`
+- `${scenarioConfig.prompt}` for `prompt`
+- `${scenarioConfig.figmaUrl}` for `figma`
+- `${scenarioConfig.templateName}` for `template`
+
+For example, a template scenario test case must provide the template name:
 
 ```json
 {
-  "$template": "visibleTextElement",
-  "params": {
-    "name": "Build apps heading",
-    "locator": {
-      "strategy": "id",
-      "id": "build-apps-heading"
-    },
-    "text": "Build apps with a blueprint."
+  "name": "Build an app from a template",
+  "enabled": true,
+  "scenario": "template",
+  "scenarioConfig": {
+    "type": "template",
+    "templateName": "${tokens.templateName}"
   }
 }
 ```
 
-### By role
+If a label, button name, or locator changes in one of these flows, update `scenarioDefinitions` in the JSON file. You should not need to update TypeScript unless a completely new action type is required.
+
+## Validation templates
+
+Use `validationTemplates` when the structure of a validation is the same but the locator, text, value, or assertion changes.
+
+Example usage:
 
 ```json
 {
-  "$template": "visibleElement",
+  "$template": "textIsVisible",
   "params": {
-    "name": "Import from Figma button",
+    "text": "Blueprint",
+    "timeout": 30000
+  }
+}
+```
+
+A template can also receive a full locator object:
+
+```json
+{
+  "$template": "validateElementState",
+  "params": {
+    "name": "Download button",
+    "assertion": "visible",
     "locator": {
       "strategy": "role",
       "role": "button",
-      "name": "Import from Figma",
+      "name": "Download",
       "exact": true
     }
   }
 }
 ```
 
-### By text
+## Validation sets
 
-```json
-{
-  "$template": "visibleElement",
-  "params": {
-    "name": "Create from Template label",
-    "locator": {
-      "strategy": "text",
-      "text": "Create from Template",
-      "exact": true
-    }
-  }
-}
-```
+Use `validationSets` when you want to reuse a group of validations.
 
-### By CSS selector
-
-```json
-{
-  "$template": "visibleElement",
-  "params": {
-    "name": "Screens list item",
-    "locator": {
-      "strategy": "css",
-      "selector": "div.Screens-list-item.MuiBox-root",
-      "first": true
-    }
-  }
-}
-```
-
-### By XPath
-
-```json
-{
-  "$template": "visibleElement",
-  "params": {
-    "name": "First screen label",
-    "locator": {
-      "strategy": "xpath",
-      "selector": "//span[normalize-space()='First Screen']"
-    }
-  }
-}
-```
-
-### By custom Playwright locator
-
-Use this when an element has no stable `id` and the selector is easier to express directly as a Playwright locator string.
-
-```json
-{
-  "$template": "visibleElement",
-  "params": {
-    "name": "First page preview screen",
-    "locator": {
-      "strategy": "custom",
-      "locator": "#PreviewScreen-main"
-    }
-  }
-}
-```
-
-You can also use Playwright selector engines:
-
-```json
-{
-  "$template": "visibleElement",
-  "params": {
-    "name": "Blueprint label",
-    "locator": {
-      "strategy": "custom",
-      "locator": "p:has-text(\"Blueprint\")"
-    }
-  }
-}
-```
-
-For XPath through the custom strategy:
-
-```json
-{
-  "$template": "visibleElement",
-  "params": {
-    "name": "Settings tab",
-    "locator": {
-      "strategy": "custom",
-      "engine": "xpath",
-      "locator": "//button[normalize-space()='Settings']"
-    }
-  }
-}
-```
-
-## Built-in generic templates
-
-These templates are already defined in `test-data/symplr_pages.json`:
-
-| Template | Purpose | Key params |
-|---|---|---|
-| `visibleElement` | Check any element is visible using any locator strategy | `name`, `locator`, optional `timeout` |
-| `visibleTextElement` | Check any element is visible and has exact text | `name`, `locator`, `text`, optional `timeout` |
-| `elementState` | Check a locator-level state such as `visible`, `disabled`, `checked`, or `unchecked` | `name`, `locator`, `assertion`, optional `timeout` |
-| `valueEqualsElement` | Check an input-like element is visible and has a specific value | `name`, `locator`, `value`, optional `timeout` |
-| `visibleById` | Legacy convenience template for visible-by-id checks | `id`, `name` |
-| `visibleTextById` | Legacy convenience template for exact text by id | `id`, `text` |
-| `visibleHeadingByText` | Convenience template for a heading located by role/name | `text`, `level` |
-| `visibleExactText` | Convenience template for exact visible text | `text` |
-| `elementByRole` | Convenience template for role-based elements such as buttons | `role`, `name`, `assertion` |
-| `checkboxStateById` | Convenience template for checkbox state by id | `id`, `name`, `assertion` |
-
-## Locator strategies supported by the runner
-
-| Strategy | Required field | Example |
-|---|---|---|
-| `id` | `id` | `{ "strategy": "id", "id": "email" }` |
-| `role` | `role` | `{ "strategy": "role", "role": "button", "name": "Save" }` |
-| `text` | `text` | `{ "strategy": "text", "text": "Save", "exact": true }` |
-| `label` | `text` | `{ "strategy": "label", "text": "Email" }` |
-| `placeholder` | `text` | `{ "strategy": "placeholder", "text": "Enter email" }` |
-| `altText` | `text` | `{ "strategy": "altText", "text": "Logo" }` |
-| `title` | `text` | `{ "strategy": "title", "text": "Close" }` |
-| `testId` | `testId` | `{ "strategy": "testId", "testId": "submit" }` |
-| `css` | `selector` | `{ "strategy": "css", "selector": ".save-button" }` |
-| `xpath` | `selector` | `{ "strategy": "xpath", "selector": "//button[text()='Save']" }` |
-| `locator` | `locator` | `{ "strategy": "locator", "locator": "p:has-text(\"Blueprint\")" }` |
-| `custom` | `locator`, `selector`, or `value` | `{ "strategy": "custom", "locator": "#PreviewScreen-main" }` |
-
-`first`, `last`, and `nth` can be added to most locator objects when the selector returns more than one element.
-
-## Template parameters
-
-Templates support both simple and object parameters:
-
-```json
-"locator": "${param.locator}"
-```
-
-The placeholder above inserts the full locator object at runtime.
-
-Nested parameters are also supported:
-
-```json
-"name": "Validate '${param.element.name}' is visible"
-```
-
-with params like:
-
-```json
-{
-  "element": {
-    "name": "Save button"
-  }
-}
-```
-
-## Existing `validationSets` still work
+Example:
 
 ```json
 {
@@ -262,53 +414,265 @@ with params like:
 }
 ```
 
-Use `validationSets` when you want to reuse a group exactly as-is. Use `validationTemplates` when the locator, expected text, value, or assertion changes per page.
+This allows multiple tests to share the same configured validations without copying them.
 
-## Setup
+## End-to-end test composition
 
-Create your local environment file:
+The project supports `includeTestCases`, which lets one test reuse sections from other test cases.
 
-```bash
-cp .env.example .env
+Example:
+
+```json
+{
+  "name": "End to End scenario test",
+  "enabled": true,
+  "scenario": "existingApp",
+  "scenarioConfig": {
+    "type": "existingApp",
+    "appName": "${tokens.appName}"
+  },
+  "includeTestCases": [
+    "Storyboard validation: Validate 'Blueprint' option",
+    "Storyboard validation: Validate 'Pages' option",
+    "Storyboard validation: Validate 'Variables' option",
+    "Storyboard validation: Validate 'Themes' option",
+    "Storyboard validation: Validate 'Settings' option",
+    "Download app definition file successfully",
+    "Validate that code can be sent by email from Developer Options",
+    "Validate that code can be pushed to GitHub from Developer Options",
+    "Validate that the app can be built and run from the storyboard",
+    "Generate a QR code to run the app on a real device"
+  ]
+}
 ```
 
-Fill in the values required by your app and authentication flow.
+Referenced test cases do not rerun their own `scenario`, `path`, or `url`; only their configured sections are reused.
 
-Then install dependencies and Playwright browsers:
+## Supported named actions
 
-```bash
-npm install
-npm run install:browsers
+The runner supports normal generic actions such as:
+
+```text
+click
+fill
+check
+uncheck
+hover
+press
+selectOption
+download
 ```
 
-## Validate test data
+It also supports Symplr-specific named actions:
 
-```bash
-npm run validate:data
+```text
+downloadAppDefinition
+downloadCodeFromEmail
+connectToGitHub
+buildAndRunApp
+waitForBuildComplete
+openRunOnDeviceModal
+waitForQrCodeGenerated
+switchToMainPage
+switchToRunPage
 ```
 
-This checks `test-data/symplr_pages.json`, expands tokens/templates/validation sets, and validates the final resolved configuration.
+Use named actions when a workflow needs page-object logic, popup handling, Gmail polling, ZIP validation, or other app-specific behavior.
 
-## Run tests
+## Example: app definition download
+
+```json
+{
+  "type": "downloadAppDefinition",
+  "name": "Download and validate appDefinition JSON file",
+  "expectedExtension": ".json",
+  "validateJson": true,
+  "minBytes": 1
+}
+```
+
+## Example: email ZIP download validation
+
+```json
+{
+  "type": "downloadCodeFromEmail",
+  "name": "Click Download and validate code ZIP from email",
+  "expectedEmailSubject": "Download Code",
+  "timeout": 180000,
+  "pollIntervalMs": 5000,
+  "expectedExtension": ".zip",
+  "minBytes": 1
+}
+```
+
+This action:
+
+1. Clicks the Symplr Download option using the page object.
+2. Polls Gmail for the expected email.
+3. Extracts the ZIP download link.
+4. Downloads the ZIP file.
+5. Validates that the file exists and looks like a ZIP archive.
+6. Attaches the ZIP to the Playwright report.
+
+## Example: Build and Run page validation
+
+```json
+{
+  "type": "buildAndRunApp",
+  "name": "Click Build and switch to the app run page"
+},
+{
+  "type": "waitForBuildComplete",
+  "name": "Wait until the app run page is ready",
+  "postValidations": [
+    {
+      "$template": "elementIsVisibleByLocator",
+      "params": {
+        "name": "Run app root container after build completes",
+        "locator": "#root>div",
+        "timeout": 30000
+      }
+    }
+  ]
+},
+{
+  "type": "openRunOnDeviceModal",
+  "name": "Open the Run App on Your Device modal"
+},
+{
+  "type": "waitForQrCodeGenerated",
+  "name": "Validate the Connect Expo QR code is generated"
+}
+```
+
+After `buildAndRunApp`, the active Playwright page becomes the newly opened run page. Normal JSON-driven validations and actions then run against that run page until you switch back with `switchToMainPage`.
+
+Use `postValidations` when you want to validate something immediately after a page action finishes. Execution order is:
+
+```text
+action -> postValidations / validations -> nested pageActions
+```
+
+The older `validations` property on an action still works and runs after the action. `postValidations` is the preferred clearer name for new action-level checks.
+
+
+## Example: Validate an element inside an iframe
+
+Some app-run content is rendered inside an iframe. For example, the built app preview uses the iframe with id `emulator-iframe`.
+
+To validate an element inside that iframe, add `frameLocator` to the locator configuration. The runner first enters the iframe, then finds the normal locator inside it.
+
+```json
+{
+  "$template": "elementIsVisibleByLocator",
+  "params": {
+    "name": "Run app login button",
+    "locator": "#root div:has-text(\"Login\")",
+    "frameLocator": "#emulator-iframe",
+    "timeout": 30000
+  }
+}
+```
+
+You can also use `frameLocator` directly in a full locator object:
+
+```json
+{
+  "name": "Run app login button is visible",
+  "locator": {
+    "strategy": "locator",
+    "locator": "#root div:has-text(\"Login\")",
+    "frameLocator": "#emulator-iframe"
+  },
+  "assertions": [
+    {
+      "type": "visible",
+      "timeout": 30000
+    }
+  ]
+}
+```
+
+Use this when the element is not on the main page, but inside an iframe.
+
+## Troubleshooting
+
+### `npm run validate:data` fails
+
+Check the error message. It usually points to a missing token, invalid locator strategy, missing assertion value, missing validation set, or missing template parameter.
+
+### Login fails
+
+Check these values in `.env`:
+
+```env
+APP_URL=
+GOOGLE_EMAIL=
+GOOGLE_PASSWORD=
+```
+
+Then delete the saved auth state and retry:
 
 ```bash
+rm -f playwright/.auth/user.json
 npm test
 ```
 
-Other useful commands:
+### Gmail test cannot find the email
+
+Check:
+
+- `GOOGLE_EMAIL` is the inbox receiving the email.
+- `EMAIL_SENDER` matches the sender, or leave it blank to avoid sender filtering.
+- `expectedEmailSubject` in JSON matches the email subject.
+- `secrets/token.json` exists.
+- The Gmail account authorized by `npm run gmail:auth` is the same account used by `GOOGLE_EMAIL`.
+
+### Gmail token is expired or revoked
+
+Run:
 
 ```bash
-npm run test:headed
-npm run test:ui
+npm run gmail:auth
+```
+
+Then rerun the test.
+
+### Playwright browser is missing
+
+Run:
+
+```bash
+npm run install:browsers
+```
+
+On Linux:
+
+```bash
+npx playwright install --with-deps
+```
+
+### HTML report does not open
+
+Run tests first, then run:
+
+```bash
 npm run report
 ```
 
-## Files changed
+## Git hygiene
+
+These files should stay out of Git:
 
 ```text
-tests/data-driven.spec.ts
-schemas/testCases.schema.json
-scripts/validate-test-data.mjs
-test-data/symplr_pages.json
-README.md
+.env
+.env.*
+playwright/.auth/user.json
+secrets/credentials.json
+secrets/token.json
+node_modules/
+playwright-report/
+test-results/
 ```
+
+Commit `.env.example` and `secrets/.gitkeep`, but do not commit real credentials or tokens.

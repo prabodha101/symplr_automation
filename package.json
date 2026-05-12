@@ -9,7 +9,8 @@
     "test:ui": "playwright test --ui",
     "report": "playwright show-report",
     "install:browsers": "playwright install",
-    "validate:data": "node scripts/validate-test-data.mjs test-data/symplr_pages.json"
+    "validate:data": "node scripts/validate-test-data.mjs test-data/symplr_pages.json",
+    "gmail:auth": "node scripts/gmail-auth.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

@@ -18,6 +18,7 @@ export class AppRunPage {
   }
 
   async waitForQrCodeGenerated(): Promise<void> {
+    console.log('  >> Waiting for QR code to be generated...');
     const qrCode = this.page.getByRole('img', { name: 'Connect Expo' });
     await expect(qrCode).toBeVisible({ timeout: 60 * 1000 });
   }
