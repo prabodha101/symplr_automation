@@ -112,14 +112,27 @@ for (const [name, count] of testCaseNameCounts.entries()) {
 }
 const testCaseNames = new Set(testCaseNameCounts.keys());
 
+
+const scenarioDefinitions = data.scenarioDefinitions ?? {};
+if (scenarioDefinitions !== undefined && (scenarioDefinitions === null || typeof scenarioDefinitions !== 'object' || Array.isArray(scenarioDefinitions))) {
+  errors.push('Root property "scenarioDefinitions" must be an object when provided.');
+}
+
+for (const [scenarioName, scenarioDefinition] of Object.entries(scenarioDefinitions)) {
+  validateScenarioDefinition(`scenarioDefinitions.${scenarioName}`, scenarioDefinition);
+}
+
 for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
   const prefix = `testCases[${pageIndex}] (${pageCase?.name ?? 'unnamed'})`;
   if (!pageCase?.name) errors.push(`${prefix}: missing name.`);
   if (!pageCase?.path && !pageCase?.url && !pageCase?.scenario) {
     errors.push(`${prefix}: provide path, url, or scenario.`);
   }
-  if (pageCase?.scenario && !pageCase.scenarioConfig) {
-    errors.push(`${prefix}: scenario is defined but scenarioConfig is missing.`);
+  if (pageCase?.scenario && !scenarioDefinitions[pageCase.scenario]) {
+    errors.push(`${prefix}: scenario definition not found for "${pageCase.scenario}".`);
+  }
+  if (pageCase?.scenarioConfig !== undefined && (pageCase.scenarioConfig === null || typeof pageCase.scenarioConfig !== 'object' || Array.isArray(pageCase.scenarioConfig))) {
+    errors.push(`${prefix}: scenarioConfig must be an object when provided.`);
   }
 
   const hasExecutableContent =
@@ -168,6 +181,33 @@ console.log(`Test data looks valid: ${absolutePath}`);
 
 function hasItems(value) {
   return Array.isArray(value) && value.length > 0;
+}
+
+function validateScenarioDefinition(prefix, scenarioDefinition) {
+  if (!scenarioDefinition || typeof scenarioDefinition !== 'object' || Array.isArray(scenarioDefinition)) {
+    errors.push(`${prefix}: scenario definition must be an object.`);
+    return;
+  }
+
+  if (scenarioDefinition.description !== undefined && typeof scenarioDefinition.description !== 'string') {
+    errors.push(`${prefix}.description: must be a string.`);
+  }
+
+  for (const [actionIndex, action] of (scenarioDefinition.beforeValidateActions ?? []).entries()) {
+    validateAction(`${prefix}.beforeValidateActions[${actionIndex}]`, action);
+  }
+
+  for (const [assertionIndex, assertion] of (scenarioDefinition.pageAssertions ?? []).entries()) {
+    validateAssertion(`${prefix}.pageAssertions[${assertionIndex}]`, assertion, pageAssertions);
+  }
+
+  for (const [validationIndex, validation] of (scenarioDefinition.validations ?? []).entries()) {
+    validateValidation(`${prefix}.validations[${validationIndex}]`, validation);
+  }
+
+  for (const [actionIndex, action] of (scenarioDefinition.pageActions ?? []).entries()) {
+    validateAction(`${prefix}.pageActions[${actionIndex}]`, action);
+  }
 }
 
 function validateTestCaseInclude(prefix, include, ownerName) {
@@ -388,10 +428,39 @@ function resolveReusableValidations(value) {
   const validationTemplates = value.validationTemplates ?? {};
   const cases = Array.isArray(value.testCases) ? value.testCases : value.pages;
   if (!Array.isArray(cases)) return value;
+
+  const scenarioDefinitions = value.scenarioDefinitions ?? {};
+  const resolvedScenarioDefinitions = Object.fromEntries(
+    Object.entries(scenarioDefinitions).map(([name, definition]) => [
+      name,
+      resolveScenarioDefinitionReusableItems(definition, validationSets, validationTemplates),
+    ])
+  );
+
   return {
     ...value,
+    scenarioDefinitions: resolvedScenarioDefinitions,
     testCases: cases.map((pageCase) => resolvePageCaseReusableItems(pageCase, validationSets, validationTemplates)),
   };
+}
+
+function resolveScenarioDefinitionReusableItems(definition, validationSets, validationTemplates) {
+  if (definition === null || typeof definition !== 'object') return definition;
+  const resolvedDefinition = { ...definition };
+  if (Array.isArray(resolvedDefinition.beforeValidateActions)) {
+    resolvedDefinition.beforeValidateActions = resolvedDefinition.beforeValidateActions.map((action) =>
+      resolveActionReusableItems(action, validationSets, validationTemplates)
+    );
+  }
+  if (Array.isArray(resolvedDefinition.pageActions)) {
+    resolvedDefinition.pageActions = resolvedDefinition.pageActions.map((action) =>
+      resolveActionReusableItems(action, validationSets, validationTemplates)
+    );
+  }
+  if (Array.isArray(resolvedDefinition.validations)) {
+    resolvedDefinition.validations = resolveValidationItems(resolvedDefinition.validations, validationSets, validationTemplates);
+  }
+  return resolvedDefinition;
 }
 
 function resolvePageCaseReusableItems(pageCase, validationSets, validationTemplates) {

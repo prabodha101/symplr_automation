@@ -24,6 +24,166 @@
     "runOnDeviceText": "Run App on Your Device",
     "connectExpoImageAlt": "Connect Expo"
   },
+  "scenarioDefinitions": {
+    "prompt": {
+      "description": "Create a new app from a text prompt. Change selectors/text here if the prompt flow changes.",
+      "beforeValidateActions": [
+        {
+          "type": "fill",
+          "name": "Enter app prompt",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Write your future app idea",
+            "exact": true
+          },
+          "value": "${scenarioConfig.prompt}"
+        },
+        {
+          "type": "click",
+          "name": "Click Start Building",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.startBuildingButton}",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    },
+    "figma": {
+      "description": "Create a new app by importing Figma screens. Change selectors/text here if the Figma import flow changes.",
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Open Import from Figma dialog",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.importFromFigmaButton}",
+            "exact": true
+          }
+        },
+        {
+          "type": "fill",
+          "name": "Enter Figma design URL",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "https://www.figma.com/design/zoxen",
+            "exact": true
+          },
+          "value": "${scenarioConfig.figmaUrl}"
+        },
+        {
+          "type": "click",
+          "name": "Click Import",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Import",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$template": "textIsVisible",
+          "params": {
+            "text": "Setting Up the App, Hang Tight!",
+            "timeout": 30000
+          }
+        },
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    },
+    "existingApp": {
+      "description": "Open an existing app from the dashboard search results. Change selectors/text here if the search/open flow changes.",
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Focus app search input",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Search",
+            "exact": true
+          }
+        },
+        {
+          "type": "fill",
+          "name": "Search for existing app",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Search",
+            "exact": true
+          },
+          "value": "${scenarioConfig.appName}"
+        },
+        {
+          "type": "click",
+          "name": "Open existing app from search result",
+          "locator": {
+            "strategy": "text",
+            "text": "${scenarioConfig.appName}",
+            "exact": true,
+            "first": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    },
+    "template": {
+      "description": "Create a new app from a template. This is intentionally JSON-only so update these actions to match the real template UI when needed.",
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Open Create from Template section",
+          "locator": {
+            "strategy": "locator",
+            "locator": "p:has-text(\"Create from Template\")",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "name": "Select template",
+          "locator": {
+            "strategy": "text",
+            "text": "${scenarioConfig.templateName}",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "name": "Create app from selected template",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Use Template",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    }
+  },
   "validationTemplates": {
     "elementIsVisibleById": {
       "name": "Validate '${param.name}' is visible",
@@ -473,6 +633,15 @@
           "timeout": 60000
         }
       }
+    ],
+    "storyboardReady": [
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Home",
+          "timeout": 300000
+        }
+      }
     ]
   },
   "testCases": [
@@ -561,6 +730,22 @@
         "figmaUrl": "${tokens.figmaUrl}",
         "figmaAppName": "${tokens.appName}"
       },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Build an app from a template",
+      "enabled": true,
+      "scenario": "template",
       "pageAssertions": [
         {
           "type": "urlContains",

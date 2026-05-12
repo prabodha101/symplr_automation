@@ -299,9 +299,60 @@ The JSON file supports:
 - `tokens` for reusable values
 - `validationTemplates` for reusable parameterized validation patterns
 - `validationSets` for reusable groups of validations
-- `testCases` for scenario definitions
+- `scenarioDefinitions` for reusable scenario flows such as `prompt`, `figma`, `template`, and `existingApp`
+- `testCases` for the actual runnable tests
 - `includeTestCases` for composing an end-to-end test from existing test cases
 - `beforeValidateActions` and `pageActions` for configured user interactions
+
+## Reusable scenario definitions
+
+The app-loading scenarios are also configuration driven. Each test case still chooses a scenario by name:
+
+```json
+{
+  "name": "Open Blueprint screen from storyboard",
+  "enabled": true,
+  "scenario": "existingApp",
+  "scenarioConfig": {
+    "type": "existingApp",
+    "appName": "${tokens.appName}"
+  }
+}
+```
+
+The actual steps for `existingApp` live in the top-level `scenarioDefinitions` section of `test-data/symplr_pages.json`:
+
+```json
+"scenarioDefinitions": {
+  "existingApp": {
+    "beforeValidateActions": [
+      {
+        "type": "fill",
+        "name": "Search for existing app",
+        "locator": {
+          "strategy": "role",
+          "role": "textbox",
+          "name": "Search",
+          "exact": true
+        },
+        "value": "${scenarioConfig.appName}"
+      }
+    ],
+    "validations": [
+      { "$ref": "storyboardReady" }
+    ]
+  }
+}
+```
+
+Use `${scenarioConfig.fieldName}` inside a scenario definition to read values from the test case's `scenarioConfig`. For example:
+
+- `${scenarioConfig.appName}` for `existingApp`
+- `${scenarioConfig.prompt}` for `prompt`
+- `${scenarioConfig.figmaUrl}` for `figma`
+- `${scenarioConfig.templateName}` for `template`
+
+If a label, button name, or locator changes in one of these flows, update `scenarioDefinitions` in the JSON file. You should not need to update TypeScript unless a completely new action type is required.
 
 ## Validation templates
 

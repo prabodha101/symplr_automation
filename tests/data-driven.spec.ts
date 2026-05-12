@@ -2,8 +2,6 @@ import { test, expect, type Locator, type Page } from "./fixtures/app-fixtures";
 import type { FrameLocator, TestInfo } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
-import { AppCreationFlows } from "../workflows/AppCreationFlows";
-import type { AppSource } from "./configs/scenarioDefinitions";
 import { ProjectStoryBoardPage } from "../pages/ProjectStoryBoardPage";
 import { AppRunPage } from "../pages/AppRunPage";
 import { waitForGmailEmail } from "../integrations/email/GmailInbox";
@@ -163,10 +161,18 @@ type ValidationTemplateDefinition =
       template: ValidationConfig | ValidationConfig[];
     };
 
+type ScenarioDefinition = {
+  description?: string;
+  beforeValidateActions?: ActionConfig[];
+  pageActions?: ActionConfig[];
+  pageAssertions?: AssertionConfig[];
+  validations?: ValidationConfig[];
+};
+
 type PageCase = {
   name: string;
   scenario?: string; // Possible values: "prompt", "template", "figma", "existingApp".
-  scenarioConfig?: AppSource; // Configuration for the scenario.
+  scenarioConfig?: Record<string, unknown>; // Parameters passed into the JSON-defined scenario.
   enabled?: boolean;
   baseUrl?: string;
   path?: string;
@@ -189,6 +195,7 @@ type TestData = {
   tokens?: Record<string, string>;
   validationSets?: Record<string, ValidationConfig | ValidationConfig[]>;
   validationTemplates?: Record<string, ValidationTemplateDefinition>;
+  scenarioDefinitions?: Record<string, ScenarioDefinition>;
   testCases: PageCase[];
 };
 
@@ -270,10 +277,59 @@ function resolveReusableValidations(value: unknown): unknown {
     resolvePageCaseReusableItems(page, validationSets, validationTemplates),
   );
 
+  const scenarioDefinitions = (root.scenarioDefinitions ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const resolvedScenarioDefinitions = Object.fromEntries(
+    Object.entries(scenarioDefinitions).map(([name, definition]) => [
+      name,
+      resolveScenarioDefinitionReusableItems(
+        definition,
+        validationSets,
+        validationTemplates,
+      ),
+    ]),
+  );
+
   return {
     ...root,
+    scenarioDefinitions: resolvedScenarioDefinitions,
     testCases: resolvedTestCases,
   };
+}
+
+function resolveScenarioDefinitionReusableItems(
+  definition: unknown,
+  validationSets: Record<string, unknown>,
+  validationTemplates: Record<string, unknown>,
+): unknown {
+  if (definition === null || typeof definition !== "object") return definition;
+
+  const scenarioObj = { ...(definition as Record<string, unknown>) };
+
+  if (Array.isArray(scenarioObj.beforeValidateActions)) {
+    scenarioObj.beforeValidateActions = scenarioObj.beforeValidateActions.map(
+      (action) =>
+        resolveActionReusableItems(action, validationSets, validationTemplates),
+    );
+  }
+
+  if (Array.isArray(scenarioObj.pageActions)) {
+    scenarioObj.pageActions = scenarioObj.pageActions.map((action) =>
+      resolveActionReusableItems(action, validationSets, validationTemplates),
+    );
+  }
+
+  if (Array.isArray(scenarioObj.validations)) {
+    scenarioObj.validations = resolveValidationItems(
+      scenarioObj.validations,
+      validationSets,
+      validationTemplates,
+    );
+  }
+
+  return scenarioObj;
 }
 
 function resolvePageCaseReusableItems(
@@ -553,20 +609,11 @@ for (const testCase of testData.testCases.filter(
       const runContext = createRunContext(page);
       console.log(`>-- Running test case : ${testCase.name}`);
 
-      // - Execute the scenario ('Prompt', 'Figma', 'Template', 'Existing App')
+      // - Execute the scenario from test-data/symplr_pages.json.
+      //   The TypeScript runner only knows how to execute generic configured
+      //   actions/validations; the actual scenario flow is data-driven.
       if (testCase.scenario) {
-        console.log(`  >> Scenario: ${testCase.scenario}`);
-        if (testCase.scenarioConfig) {
-          const appCreationFlows = new AppCreationFlows(page);
-          await appCreationFlows.createOrLoadApp(testCase.scenarioConfig);
-          console.log(
-            `  >> Scenario "${testCase.scenario}" executed successfully. Landed on app page.`,
-          );
-        } else {
-          throw new Error(
-            `Scenario "${testCase.scenario}" is defined but scenarioConfig is missing in test data.`,
-          );
-        }
+        await runConfiguredScenario(runContext, testCase, testInfo);
       }
       // -----------------------------------------------------------------------
 
@@ -586,6 +633,102 @@ for (const testCase of testData.testCases.filter(
       ]);
     });
   });
+}
+
+async function runConfiguredScenario(
+  context: RunContext,
+  pageCase: PageCase,
+  testInfo: TestInfo,
+): Promise<void> {
+  if (!pageCase.scenario) return;
+
+  const scenarioDefinitions = testData.scenarioDefinitions ?? {};
+  const rawDefinition = scenarioDefinitions[pageCase.scenario];
+
+  if (!rawDefinition) {
+    throw new Error(
+      `Scenario definition not found for "${pageCase.scenario}". ` +
+        `Add it under scenarioDefinitions in test-data/symplr_pages.json.`,
+    );
+  }
+
+  const scenarioConfig = pageCase.scenarioConfig ?? {};
+  const scenarioDefinition = resolveScenarioConfigPlaceholders(
+    deepClone(rawDefinition),
+    scenarioConfig,
+  ) as ScenarioDefinition;
+
+  console.log(`  >> Scenario: ${pageCase.scenario}`);
+
+  await test.step(` >> scenario: ${pageCase.scenario}`, async () => {
+    await runConfiguredTestCaseSections(
+      context,
+      {
+        ...pageCase,
+        beforeValidateActions: scenarioDefinition.beforeValidateActions,
+        pageAssertions: scenarioDefinition.pageAssertions,
+        validations: scenarioDefinition.validations,
+        pageActions: scenarioDefinition.pageActions,
+        includeTestCases: [],
+      },
+      testInfo,
+      [pageCase.name, `scenario:${pageCase.scenario}`],
+      ["beforeValidateActions", "pageAssertions", "validations", "pageActions"],
+    );
+  });
+
+  console.log(`  >> Scenario "${pageCase.scenario}" executed successfully.`);
+}
+
+function resolveScenarioConfigPlaceholders(
+  value: unknown,
+  scenarioConfig: Record<string, unknown>,
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      resolveScenarioConfigPlaceholders(item, scenarioConfig),
+    );
+  }
+
+  if (typeof value === "string") {
+    const exactMatch = value.match(/^\$\{scenarioConfig\.([a-zA-Z0-9_.]+)\}$/);
+    if (exactMatch) {
+      return getScenarioConfigParam(scenarioConfig, exactMatch[1]);
+    }
+
+    return value.replace(
+      /\$\{scenarioConfig\.([a-zA-Z0-9_.]+)\}/g,
+      (_, paramKey) => String(getScenarioConfigParam(scenarioConfig, paramKey)),
+    );
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        resolveScenarioConfigPlaceholders(item, scenarioConfig),
+      ]),
+    );
+  }
+
+  return value;
+}
+
+function getScenarioConfigParam(
+  scenarioConfig: Record<string, unknown>,
+  key: string,
+): unknown {
+  const pathParts = key.split(".");
+  let current: unknown = scenarioConfig;
+
+  for (const part of pathParts) {
+    if (current === null || typeof current !== "object" || !(part in current)) {
+      throw new Error(`Scenario config parameter not found: ${key}`);
+    }
+    current = (current as Record<string, unknown>)[part];
+  }
+
+  return current;
 }
 
 function buildTestCaseLookup(testCases: PageCase[]): Map<string, PageCase> {
@@ -648,12 +791,9 @@ async function runConfiguredTestCaseSections(
 ): Promise<void> {
   if (hasIncludedSection(sections, "beforeValidateActions")) {
     for (const action of pageCase.beforeValidateActions ?? []) {
-      await test.step(
-        ` >> before validation action: ${action.name ?? action.type}`,
-        async () => {
-          await runAction(context, action, undefined, testInfo);
-        },
-      );
+      await test.step(` >> before validation action: ${action.name ?? action.type}`, async () => {
+        await runAction(context, action, undefined, testInfo);
+      });
     }
   }
 
@@ -668,11 +808,21 @@ async function runConfiguredTestCaseSections(
   }
 
   if (hasIncludedSection(sections, "validations")) {
-    await runValidations(context, pageCase, pageCase.validations ?? [], testInfo);
+    await runValidations(
+      context,
+      pageCase,
+      pageCase.validations ?? [],
+      testInfo,
+    );
   }
 
   if (hasIncludedSection(sections, "pageActions")) {
-    await runPageActions(context, pageCase, pageCase.pageActions ?? [], testInfo);
+    await runPageActions(
+      context,
+      pageCase,
+      pageCase.pageActions ?? [],
+      testInfo,
+    );
   }
 
   if (hasIncludedSection(sections, "includeTestCases")) {
@@ -705,18 +855,15 @@ async function runIncludedTestCases(
       );
     }
 
-    await test.step(
-      ` >> included test case: ${includedTestCase.name}`,
-      async () => {
-        await runConfiguredTestCaseSections(
-          context,
-          includedTestCase,
-          testInfo,
-          [...includeStack, includedTestCase.name],
-          normalizedInclude.sections,
-        );
-      },
-    );
+    await test.step(` >> included test case: ${includedTestCase.name}`, async () => {
+      await runConfiguredTestCaseSections(
+        context,
+        includedTestCase,
+        testInfo,
+        [...includeStack, includedTestCase.name],
+        normalizedInclude.sections,
+      );
+    });
   }
 }
 
@@ -793,12 +940,17 @@ type LocatorRoot = Page | FrameLocator;
 
 function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
   const frameSelector = locatorConfig.frameLocator?.trim();
-  const root: LocatorRoot = frameSelector ? page.frameLocator(frameSelector) : page;
+  const root: LocatorRoot = frameSelector
+    ? page.frameLocator(frameSelector)
+    : page;
 
   return buildLocatorFromRoot(root, locatorConfig);
 }
 
-function buildLocatorFromRoot(root: LocatorRoot, locatorConfig: LocatorConfig): Locator {
+function buildLocatorFromRoot(
+  root: LocatorRoot,
+  locatorConfig: LocatorConfig,
+): Locator {
   let locator: Locator;
 
   switch (locatorConfig.strategy) {
@@ -981,7 +1133,12 @@ async function runAction(
       if (!locator) throw new Error("download action requires a locator.");
       if (!testInfo)
         throw new Error("download action requires Playwright testInfo.");
-      await runGenericDownloadAction(context.activePage, locator, action, testInfo);
+      await runGenericDownloadAction(
+        context.activePage,
+        locator,
+        action,
+        testInfo,
+      );
       return;
     case "downloadAppDefinition":
       if (!testInfo)
@@ -999,9 +1156,7 @@ async function runAction(
       return;
     case "connectToGitHub":
       if (!testInfo)
-        throw new Error(
-          "connectToGitHub action requires Playwright testInfo."
-        );
+        throw new Error("connectToGitHub action requires Playwright testInfo.");
       await runPushCodeToGitHubAction(context.mainPage, action, testInfo);
       return;
     case "buildAndRunApp":
@@ -1168,13 +1323,13 @@ async function runPushCodeToGitHubAction(
   const email = await waitForGmailEmail({
     from: process.env.EMAIL_SENDER,
     to: process.env.GOOGLE_EMAIL,
-    subjectContains: 'Push Code Github',
+    subjectContains: "Push Code Github",
     after: sentAt,
     timeoutMs: 180_000,
     pollIntervalMs: 5_000,
   });
 
-  expect(email.subject).toContain('Push Code Github');
+  expect(email.subject).toContain("Push Code Github");
 }
 
 function validateDownloadedFile(

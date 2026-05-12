@@ -65,6 +65,13 @@
       "items": {
         "$ref": "#/$defs/pageCase"
       }
+    },
+    "scenarioDefinitions": {
+      "type": "object",
+      "description": "Reusable scenario flows executed before each test case. Each key should match a testCases[].scenario value. The flow uses the same config-driven actions/validations as normal tests and can reference scenarioConfig values with ${scenarioConfig.fieldName}.",
+      "additionalProperties": {
+        "$ref": "#/$defs/scenarioDefinition"
+      }
     }
   },
   "$defs": {
@@ -85,10 +92,12 @@
             "template",
             "figma",
             "existingApp"
-          ]
+          ],
+          "description": "Name of a reusable scenario flow under scenarioDefinitions. Built-in names used by this project are prompt, template, figma, and existingApp."
         },
         "scenarioConfig": {
-          "$ref": "#/$defs/scenarioConfig"
+          "$ref": "#/$defs/scenarioConfig",
+          "description": "Parameters passed into the selected scenarioDefinition. Scenario definitions can reference these values with ${scenarioConfig.fieldName}."
         },
         "enabled": {
           "type": "boolean"
@@ -904,7 +913,7 @@
       ]
     },
     "scenarioConfig": {
-      "description": "Configuration for AppCreationFlows.createOrLoadApp().",
+      "description": "Parameters for the selected JSON-defined scenario. The known scenarios use prompt, templateName, figmaUrl/figmaAppName, or appName, but additional properties are allowed for custom scenario definitions.",
       "anyOf": [
         {
           "type": "object",
@@ -979,6 +988,40 @@
           "additionalProperties": true
         }
       ]
+    },
+    "scenarioDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "beforeValidateActions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "pageActions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "pageAssertions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/assertion"
+          }
+        },
+        "validations": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/validationOrReusable"
+          }
+        }
+      }
     }
   },
   "anyOf": [
