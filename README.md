@@ -1,43 +1,197 @@
-# Symplr config-driven Playwright tests
+# Symplr Config-Driven Playwright Tests
 
-This project runs Symplr end-to-end UI tests using a JSON-driven test configuration instead of writing a new Playwright spec for every screen or scenario.
+This project runs Symplr end-to-end UI tests using a JSON-driven Playwright automation framework.
 
-The main files are:
+Instead of writing a new Playwright spec file for every page, screen, or scenario, most test behavior is configured in:
 
 ```text
-test-data/symplr_pages.json   # test cases, validation sets, templates, actions
-tests/data-driven.spec.ts     # generic Playwright runner
-playwright.config.ts          # Playwright configuration
-.env.example                  # local environment variable template
+test-data/symplr_pages.json
 ```
 
-## Prerequisites
+The generic Playwright runner reads this JSON file and executes the configured scenarios, actions, validations, downloads, email checks, and end-to-end flows.
+
+---
+
+## Table of Contents
+
+1. [Project Overview](#project-overview)
+2. [Important Files](#important-files)
+3. [Pre-Requisites](#pre-requisites)
+4. [Fresh Clone Setup](#fresh-clone-setup)
+5. [Environment Configuration](#environment-configuration)
+6. [Gmail API Setup](#gmail-api-setup)
+7. [Login Session Handling](#login-session-handling)
+8. [Validate Test Data](#validate-test-data)
+9. [Test Execution Commands](#test-execution-commands)
+10. [Run Tests by Scenario](#run-tests-by-scenario)
+11. [How the Config-Driven Tests Work](#how-the-config-driven-tests-work)
+12. [How to Add a New Test Case](#how-to-add-a-new-test-case)
+13. [Examples](#examples)
+14. [Troubleshooting](#troubleshooting)
+15. [Git Hygiene](#git-hygiene)
+
+---
+
+## Project Overview
+
+The goal of this framework is to let users add and maintain many UI tests from configuration.
+
+Most changes should be done in:
+
+```text
+test-data/symplr_pages.json
+```
+
+Only update TypeScript code when a completely new framework capability is required, such as a new special action, new integration, or new locator strategy.
+
+High-level execution flow:
+
+```text
+Start Playwright Test
+  -> Read symplr_pages.json
+  -> Load tokens and defaults
+  -> Load test case
+  -> Prepare authenticated browser page
+  -> Run scenario or navigate to page
+  -> Run before actions
+  -> Run page assertions
+  -> Run validations
+  -> Run page actions
+  -> Run nested validations
+  -> Test passes or fails
+```
+
+---
+
+## Important Files
+
+| File | Purpose |
+|---|---|
+| `test-data/symplr_pages.json` | Main test configuration file. Contains tokens, scenario definitions, validation templates, validation sets, and test cases. |
+| `schemas/testCases.schema.json` | JSON schema that defines the allowed structure of `symplr_pages.json`. |
+| `tests/data-driven.spec.ts` | Generic Playwright runner that reads the JSON file and executes tests. |
+| `tests/fixtures/app-fixtures.ts` | Custom Playwright fixture that prepares an authenticated browser page before test execution. |
+| `tests/utils/auth-session.ts` | Handles saved login session reuse and re-login when session is expired. |
+| `pages/LoginPage.ts` | Contains Google login page interactions. |
+| `pages/DashboardHomePage.ts` | Contains dashboard page helpers used to confirm login/session status. |
+| `pages/ProjectStoryBoardPage.ts` | Page object for storyboard-specific named actions. |
+| `pages/AppRunPage.ts` | Page object for Build and Run page actions. |
+| `integrations/email/GmailInbox.ts` | Reads Gmail messages for email-based tests. |
+| `integrations/email/GmailDownloadLink.ts` | Extracts and downloads ZIP links from emails. |
+| `scripts/validate-test-data.mjs` | Validates the JSON test data before running browser tests. |
+| `scripts/gmail-auth.mjs` | Generates or refreshes Gmail OAuth token. |
+| `playwright.config.ts` | Playwright configuration. |
+| `.env.example` | Template for local environment variables. |
+
+---
+
+## Pre-Requisites
+
+Before running the automation tests, complete the following items.
+
+### 1. Google Account
+
+- A Google account is required to log in to Symplr.
+- This Google account must already be registered with Symplr.
+- The user should be able to manually log in to Symplr before running automation.
+- Recommended: use a dedicated QA/test Google account instead of a personal account.
+
+Example:
+
+```text
+qa.automation.user@gmail.com
+```
+
+### 2. Disable 2FA
+
+- Two-factor authentication should be disabled for the Google account used by automation.
+- The framework logs in using email and password.
+- If 2FA is enabled, Google may ask for manual verification and the automation can fail.
+
+### 3. Add Google Credentials to `.env`
+
+The Google email and password should be added to the local `.env` file:
+
+```env
+GOOGLE_EMAIL=qa.automation.user@gmail.com
+GOOGLE_PASSWORD=your-password-here
+```
+
+Do not commit `.env` to GitHub.
+
+### 4. Symplr Access
+
+The configured Google account should have permission to:
+
+- Log in to Symplr.
+- Access the correct workspace.
+- Open the dashboard.
+- Search for the configured test app.
+- Open the storyboard.
+- Use Developer Options.
+- Build and run the app, if Build and Run tests are enabled.
+
+### 5. GitHub Account Connection
+
+For GitHub-related tests, the user's GitHub account should already be connected to the Symplr account.
+
+This is required for tests such as:
+
+```text
+Validate that code can be pushed to GitHub from Developer Options
+```
+
+If the GitHub authorization has expired, reconnect GitHub manually before running the test.
+
+### 6. Gmail API
+
+Email-based tests require Gmail API access.
+
+Example email-based tests:
+
+```text
+Validate that code can be sent by email from Developer Options
+Validate that code can be pushed to GitHub from Developer Options
+```
+
+The Gmail API is used to:
+
+- Wait for a specific email.
+- Validate the email subject.
+- Read the email body.
+- Extract a download link.
+- Download and validate a ZIP file.
+
+### 7. Local Machine Requirements
 
 Install these before running the tests:
 
 - Git
 - Node.js 20 or later
 - npm, which is installed with Node.js
+- Playwright browsers
 
-Check your versions:
+Check versions:
 
 ```bash
 node --version
 npm --version
 ```
 
-If you use `nvm`, a typical setup is:
+If using `nvm`, a typical setup is:
 
 ```bash
 nvm install 20
 nvm use 20
 ```
 
-Node.js 22 LTS is also fine.
+Node.js 22 LTS is also supported.
 
-## Fresh clone setup
+---
 
-From a clean machine or fresh checkout, run:
+## Fresh Clone Setup
+
+From a clean machine or fresh checkout:
 
 ```bash
 git clone <repository-url>
@@ -50,7 +204,7 @@ Install project dependencies from `package-lock.json`:
 npm ci
 ```
 
-If you are actively changing dependencies and do not want to use the lock file strictly, use this instead:
+If you are actively changing dependencies and do not want to use the lock file strictly, use:
 
 ```bash
 npm install
@@ -62,21 +216,31 @@ Install Playwright browser binaries:
 npm run install:browsers
 ```
 
-On Linux CI machines, you may need Playwright system dependencies too:
+Or run directly:
+
+```bash
+npx playwright install
+```
+
+On Linux CI machines, install browser system dependencies too:
 
 ```bash
 npx playwright install --with-deps
 ```
 
-## Configure local environment variables
+---
 
-Create your local `.env` file:
+## Environment Configuration
+
+Create your local `.env` file from `.env.example`.
+
+### macOS / Linux
 
 ```bash
 cp .env.example .env
 ```
 
-On Windows PowerShell, use:
+### Windows PowerShell
 
 ```powershell
 Copy-Item .env.example .env
@@ -84,83 +248,192 @@ Copy-Item .env.example .env
 
 Then update `.env` with your local values.
 
-Important variables:
+Example:
 
 ```env
 APP_URL=https://101studio.co/
-PRE_CREATED_APP_NAME=printmessage
 
-GOOGLE_EMAIL=
-GOOGLE_PASSWORD=
+GOOGLE_EMAIL=qa.automation.user@gmail.com
+GOOGLE_PASSWORD=your-password-here
 
 EMAIL_SENDER=notification@101digital.io
+
 GMAIL_CREDENTIALS_PATH=secrets/credentials.json
 GMAIL_TOKEN_PATH=secrets/token.json
 GMAIL_SCOPES=https://www.googleapis.com/auth/gmail.readonly
 GMAIL_REDIRECT_URI=http://127.0.0.1:53682/oauth2callback
 ```
 
-### What these values are used for
+### Environment Variable Details
 
 | Variable | Purpose |
 |---|---|
-| `APP_URL` | Symplr application URL used by Playwright. |
-| `PRE_CREATED_APP_NAME` | Existing app name used by existing-app scenarios. |
-| `GOOGLE_EMAIL` | Login email and Gmail inbox recipient for email-based tests. |
-| `GOOGLE_PASSWORD` | Google login password used by the UI login flow. |
-| `EMAIL_SENDER` | Sender filter for Gmail polling. Leave blank only if you want to match by recipient and subject. |
-| `GMAIL_CREDENTIALS_PATH` | Path to Google OAuth client credentials. |
+| `APP_URL` | Symplr application URL used by Playwright. This should be the single source of truth for the base URL. |
+| `GOOGLE_EMAIL` | Google account used for Symplr login and Gmail inbox validation. |
+| `GOOGLE_PASSWORD` | Google account password used by the UI login flow. |
+| `EMAIL_SENDER` | Sender filter used while polling Gmail. Leave blank only if you want to match by recipient and subject only. |
+| `GMAIL_CREDENTIALS_PATH` | Path to Google OAuth client credentials file. |
 | `GMAIL_TOKEN_PATH` | Path where the generated Gmail OAuth token is stored. |
 | `GMAIL_SCOPES` | Gmail API scope used by email validation. |
 | `GMAIL_REDIRECT_URI` | Local OAuth callback used by `npm run gmail:auth`. |
 
-Do not commit `.env`, `secrets/credentials.json`, `secrets/token.json`, or `playwright/.auth/user.json`.
+### Base URL Recommendation
 
-## Gmail setup for email-based tests
+Keep the application URL in `.env` as:
 
-Some tests validate email workflows, such as downloading code from an email link. Those tests need Gmail API access.
-
-Email-based tests include flows such as:
-
-```text
-Validate that code can be sent by email from Developer Options
-End to End scenario test
+```env
+APP_URL=https://101studio.co/
 ```
 
-To configure Gmail access:
+Do not duplicate the same base URL in `test-data/symplr_pages.json`.
 
-1. Create or obtain a Google OAuth client credentials file.
-2. Save it as:
+Reason:
+
+```text
+.env = environment-specific values
+symplr_pages.json = test behavior and validation data
+```
+
+This makes it easier to switch between local, QA, staging, and production environments.
+
+---
+
+## Gmail API Setup
+
+Some tests need to read Gmail emails and download files from email links.
+
+### Step 1: Enable Gmail API
+
+In Google Cloud Console:
+
+1. Select or create a Google Cloud project.
+2. Enable the Gmail API.
+3. Configure OAuth consent screen.
+4. If the OAuth app is in testing mode, add the automation Gmail account as a test user.
+
+### Step 2: Create OAuth Credentials
+
+Create:
+
+```text
+OAuth Client ID
+```
+
+Recommended application type:
+
+```text
+Desktop app
+```
+
+Download the credentials JSON file and save it as:
 
 ```text
 secrets/credentials.json
 ```
 
-3. Make sure `.env` points to it:
+The file should contain values like:
+
+```json
+{
+  "installed": {
+    "client_id": "your-client-id",
+    "client_secret": "your-client-secret"
+  }
+}
+```
+
+### Step 3: Configure `.env`
+
+Make sure `.env` points to the Gmail files:
 
 ```env
 GMAIL_CREDENTIALS_PATH=secrets/credentials.json
 GMAIL_TOKEN_PATH=secrets/token.json
 ```
 
-4. Generate the Gmail token:
+### Step 4: Generate Gmail Token
+
+Run:
 
 ```bash
 npm run gmail:auth
 ```
 
-5. Open the authorization URL printed in the terminal.
-6. Sign in with the Gmail account used in `GOOGLE_EMAIL`.
-7. Approve access.
-8. Confirm that this file was created:
+Then:
+
+1. Open the authorization URL printed in the terminal.
+2. Sign in using the Gmail account from `GOOGLE_EMAIL`.
+3. Approve access.
+4. Confirm that this file was created:
 
 ```text
 secrets/token.json
 ```
 
-The test code refreshes the Gmail access token automatically when possible. If Google says the refresh token is expired or revoked, run `npm run gmail:auth` again to generate a new token.
+The test code refreshes the Gmail access token automatically when possible.
 
-## Validate the JSON test data
+If Google says the refresh token is expired or revoked, run this again:
+
+```bash
+npm run gmail:auth
+```
+
+---
+
+## Login Session Handling
+
+Before each test runs, the framework checks whether a saved login session is already available.
+
+The saved session file is:
+
+```text
+playwright/.auth/user.json
+```
+
+This file contains browser authentication state such as cookies and local storage.
+
+### What Happens Before Each Test
+
+1. Playwright starts the test.
+2. The custom test fixture prepares an authenticated page.
+3. The framework checks whether `playwright/.auth/user.json` exists.
+4. If the file exists, the framework opens the app using the saved session.
+5. It checks whether the session is still active.
+6. If the session is active, the test runs as a pre-logged-in user.
+7. If the session is missing or expired, the framework logs in using `GOOGLE_EMAIL` and `GOOGLE_PASSWORD`.
+8. After successful login, it saves a fresh session to `playwright/.auth/user.json`.
+9. The configured test steps then run.
+
+Simple flow:
+
+```text
+Test starts
+  -> Check saved session file
+  -> Session exists and active?
+      -> Yes: reuse saved session
+      -> No: login with configured user and save new session
+  -> Run test as pre-logged-in user
+```
+
+If login behaves unexpectedly, delete the saved auth file and run again:
+
+### macOS / Linux
+
+```bash
+rm -f playwright/.auth/user.json
+```
+
+### Windows PowerShell
+
+```powershell
+Remove-Item playwright/.auth/user.json -ErrorAction SilentlyContinue
+```
+
+Do not commit `playwright/.auth/user.json` to Git.
+
+---
+
+## Validate Test Data
 
 Before running browser tests, validate the JSON configuration:
 
@@ -170,8 +443,9 @@ npm run validate:data
 
 This checks:
 
-- `test-data/symplr_pages.json` syntax
+- JSON syntax
 - tokens
+- scenario definitions
 - validation templates
 - validation sets
 - included test cases
@@ -185,88 +459,142 @@ A successful result looks like:
 Test data looks valid: <path>/test-data/symplr_pages.json
 ```
 
-## Run tests
+Run this command after every change to `test-data/symplr_pages.json`.
 
-Run all tests:
+---
+
+## Test Execution Commands
+
+### Run All Tests
 
 ```bash
 npm test
 ```
 
-Run tests with the browser visible:
+### Run Tests with Browser Visible
 
 ```bash
 npm run test:headed
 ```
 
-Open Playwright UI mode:
+### Open Playwright UI Mode
 
 ```bash
 npm run test:ui
 ```
 
-Open the latest HTML report:
+### Open Latest HTML Report
 
 ```bash
 npm run report
 ```
 
-## Run a specific test case
+### Run a Specific Test Case
 
 Use Playwright's `-g` grep option with the test name from `test-data/symplr_pages.json`.
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "Home page loads correctly"
+```
+
+Headed mode:
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "Home page loads correctly" --headed
+```
+
+Another example:
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "Open Pages screen from storyboard" --headed
+```
+
+### List Tests Without Running Them
+
+```bash
+npx playwright test --list
+```
+
+### Debug a Test
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "Home page loads correctly" --debug
+```
+
+---
+
+## Run Tests by Scenario
+
+The project supports scenario filtering from the command line.
+
+Allowed scenario values:
+
+```text
+prompt
+figma
+template
+existingApp
+```
+
+### Using npm script
+
+```bash
+npm run test:scenario -- existingApp
+```
 
 Examples:
 
 ```bash
-npx playwright test -g "Storyboard validation: Validate 'Pages' option"
+npm run test:scenario -- figma
+npm run test:scenario -- template
+npm run test:scenario -- prompt
 ```
+
+With headed mode:
 
 ```bash
-npx playwright test -g "Download app definition file successfully"
+npm run test:scenario -- existingApp --headed
 ```
+
+With a specific test name:
 
 ```bash
-npx playwright test -g "End to End scenario test"
+npm run test:scenario -- existingApp -g "Open Blueprint screen from storyboard"
 ```
 
-For headed mode:
+### Using environment variables directly
 
-```bash
-npx playwright test -g "End to End scenario test" --headed
-```
-
-## Authentication behavior
-
-The project uses a reusable authenticated browser session.
-
-On the first run, Playwright logs in using:
-
-```env
-GOOGLE_EMAIL=
-GOOGLE_PASSWORD=
-```
-
-After login, it saves the authenticated session to:
-
-```text
-playwright/.auth/user.json
-```
-
-Future test runs reuse that file if the session is still valid.
-
-If login behaves unexpectedly or the saved session expires, delete the saved auth file and run the test again:
-
-```bash
-rm -f playwright/.auth/user.json
-```
-
-On Windows PowerShell:
+#### Windows PowerShell
 
 ```powershell
-Remove-Item playwright/.auth/user.json -ErrorAction SilentlyContinue
+$env:SCENARIO="existingApp"
+npx playwright test tests/data-driven.spec.ts --headed
 ```
 
-## Project scripts
+#### Windows CMD
+
+```cmd
+set SCENARIO=existingApp && npx playwright test tests/data-driven.spec.ts --headed
+```
+
+#### macOS / Linux
+
+```bash
+SCENARIO=existingApp npx playwright test tests/data-driven.spec.ts --headed
+```
+
+Important:
+
+```text
+SCENARIO=figma means:
+Run only test cases whose scenario is already "figma".
+
+It does not convert an existingApp test into a figma test.
+```
+
+---
+
+## Project Scripts
 
 These scripts are available in `package.json`:
 
@@ -279,8 +607,11 @@ These scripts are available in `package.json`:
 | `npm run install:browsers` | Installs Playwright browsers. |
 | `npm run validate:data` | Validates `test-data/symplr_pages.json`. |
 | `npm run gmail:auth` | Generates or refreshes Gmail OAuth token file. |
+| `npm run test:scenario -- <scenario>` | Runs only test cases matching a scenario. |
 
-## How the config-driven tests work
+---
+
+## How the Config-Driven Tests Work
 
 The main test data file is:
 
@@ -296,17 +627,27 @@ tests/data-driven.spec.ts
 
 The JSON file supports:
 
+- `defaults` for common settings
 - `tokens` for reusable values
+- `scenarioDefinitions` for reusable scenario flows
 - `validationTemplates` for reusable parameterized validation patterns
 - `validationSets` for reusable groups of validations
-- `scenarioDefinitions` for reusable scenario flows such as `prompt`, `figma`, `template`, and `existingApp`
-- `testCases` for the actual runnable tests
-- `includeTestCases` for composing an end-to-end test from existing test cases
-- `beforeValidateActions` and `pageActions` for configured user interactions
+- `testCases` for actual runnable tests
+- `includeTestCases` for composing end-to-end tests from existing test cases
+- `beforeValidateActions` for actions before validations
+- `pageAssertions` for page title/URL checks
+- `validations` for UI validations
+- `pageActions` for configured user interactions
+- `postValidations` for validations immediately after a page action
+- `frameLocator` for validating elements inside iframes
 
-## Reusable scenario definitions
+---
 
-The app-loading scenarios are also configuration driven. Each test case still chooses a scenario by name:
+## Reusable Scenario Definitions
+
+The app-loading scenarios are configuration driven.
+
+Each test case chooses a scenario by name:
 
 ```json
 {
@@ -320,7 +661,9 @@ The app-loading scenarios are also configuration driven. Each test case still ch
 }
 ```
 
-The actual steps for `existingApp` live in the top-level `scenarioDefinitions` section of `test-data/symplr_pages.json`:
+The actual steps for `existingApp` live in the top-level `scenarioDefinitions` section of `test-data/symplr_pages.json`.
+
+Example:
 
 ```json
 "scenarioDefinitions": {
@@ -345,14 +688,18 @@ The actual steps for `existingApp` live in the top-level `scenarioDefinitions` s
 }
 ```
 
-Use `${scenarioConfig.fieldName}` inside a scenario definition to read values from the test case's `scenarioConfig`. For example:
+Use `${scenarioConfig.fieldName}` inside a scenario definition to read values from the test case's `scenarioConfig`.
 
-- `${scenarioConfig.appName}` for `existingApp`
-- `${scenarioConfig.prompt}` for `prompt`
-- `${scenarioConfig.figmaUrl}` for `figma`
-- `${scenarioConfig.templateName}` for `template`
+Examples:
 
-For example, a template scenario test case must provide the template name:
+| Scenario | Common Config Value |
+|---|---|
+| `existingApp` | `${scenarioConfig.appName}` |
+| `prompt` | `${scenarioConfig.prompt}` |
+| `figma` | `${scenarioConfig.figmaUrl}` |
+| `template` | `${scenarioConfig.templateName}` |
+
+Example template scenario test case:
 
 ```json
 {
@@ -366,13 +713,15 @@ For example, a template scenario test case must provide the template name:
 }
 ```
 
-If a label, button name, or locator changes in one of these flows, update `scenarioDefinitions` in the JSON file. You should not need to update TypeScript unless a completely new action type is required.
+If a label, button name, or locator changes in one of these flows, update `scenarioDefinitions` in the JSON file.
 
-## Validation templates
+---
 
-Use `validationTemplates` when the structure of a validation is the same but the locator, text, value, or assertion changes.
+## Validation Templates
 
-Example usage:
+Use `validationTemplates` when the structure of a validation is the same but the text, locator, value, or assertion changes.
+
+Example:
 
 ```json
 {
@@ -384,7 +733,7 @@ Example usage:
 }
 ```
 
-A template can also receive a full locator object:
+Example with a full locator object:
 
 ```json
 {
@@ -402,11 +751,13 @@ A template can also receive a full locator object:
 }
 ```
 
-## Validation sets
+---
+
+## Validation Sets
 
 Use `validationSets` when you want to reuse a group of validations.
 
-Example:
+Example usage:
 
 ```json
 {
@@ -414,9 +765,11 @@ Example:
 }
 ```
 
-This allows multiple tests to share the same configured validations without copying them.
+This allows multiple tests to share the same validations without copying them.
 
-## End-to-end test composition
+---
+
+## End-to-End Test Composition
 
 The project supports `includeTestCases`, which lets one test reuse sections from other test cases.
 
@@ -424,7 +777,7 @@ Example:
 
 ```json
 {
-  "name": "End to End scenario test",
+  "name": "End to End scenario test using existing app",
   "enabled": true,
   "scenario": "existingApp",
   "scenarioConfig": {
@@ -432,25 +785,25 @@ Example:
     "appName": "${tokens.appName}"
   },
   "includeTestCases": [
-    "Storyboard validation: Validate 'Blueprint' option",
-    "Storyboard validation: Validate 'Pages' option",
-    "Storyboard validation: Validate 'Variables' option",
-    "Storyboard validation: Validate 'Themes' option",
-    "Storyboard validation: Validate 'Settings' option",
-    "Download app definition file successfully",
+    "Open Blueprint screen from storyboard",
+    "Open Pages screen from storyboard",
+    "Open Themes screen from storyboard",
+    "Open Variables screen from storyboard",
+    "Open Settings screen from storyboard",
     "Validate that code can be sent by email from Developer Options",
     "Validate that code can be pushed to GitHub from Developer Options",
-    "Validate that the app can be built and run from the storyboard",
-    "Generate a QR code to run the app on a real device"
+    "Validate that the app can be built and run from the storyboard"
   ]
 }
 ```
 
 Referenced test cases do not rerun their own `scenario`, `path`, or `url`; only their configured sections are reused.
 
-## Supported named actions
+---
 
-The runner supports normal generic actions such as:
+## Supported Actions
+
+The runner supports generic actions:
 
 ```text
 click
@@ -479,7 +832,168 @@ switchToRunPage
 
 Use named actions when a workflow needs page-object logic, popup handling, Gmail polling, ZIP validation, or other app-specific behavior.
 
-## Example: app definition download
+---
+
+## How to Add a New Test Case
+
+Most new test cases should be added in:
+
+```text
+test-data/symplr_pages.json
+```
+
+### Step 1: Add or Reuse Tokens
+
+If the same text is used many times, add it under `tokens`.
+
+Example:
+
+```json
+"tokens": {
+  "newMenuText": "Reports"
+}
+```
+
+Then use it like this:
+
+```json
+"${tokens.newMenuText}"
+```
+
+### Step 2: Reuse Existing Templates or Validation Sets
+
+Before adding a long validation block, check whether a template or validation set already exists.
+
+Useful examples:
+
+```json
+{ "$template": "textIsVisible" }
+```
+
+```json
+{ "$template": "elementIsVisibleByLocator" }
+```
+
+```json
+{ "$ref": "blueprintScreen" }
+```
+
+### Step 3: Add the Test Case
+
+Add a new object inside the `testCases` array.
+
+Example:
+
+```json
+{
+  "name": "Open Reports screen from storyboard",
+  "enabled": true,
+  "scenario": "existingApp",
+  "scenarioConfig": {
+    "type": "existingApp",
+    "appName": "${tokens.appName}"
+  },
+  "beforeValidateActions": [
+    {
+      "type": "click",
+      "name": "Open Reports menu",
+      "locator": {
+        "strategy": "text",
+        "text": "${tokens.newMenuText}",
+        "exact": true
+      }
+    }
+  ],
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "${tokens.newMenuText}",
+        "timeout": 30000
+      }
+    }
+  ]
+}
+```
+
+### Step 4: Validate the JSON
+
+```bash
+npm run validate:data
+```
+
+### Step 5: Run the New Test
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "Open Reports screen from storyboard" --headed
+```
+
+---
+
+## Examples
+
+### Example 1: Validate Text Is Visible
+
+```json
+{
+  "$template": "textIsVisible",
+  "params": {
+    "text": "Settings",
+    "timeout": 30000
+  }
+}
+```
+
+### Example 2: Validate Button Is Visible
+
+```json
+{
+  "$template": "buttonIsVisible",
+  "params": {
+    "name": "Add",
+    "timeout": 30000
+  }
+}
+```
+
+### Example 3: Validate Element by Custom Locator
+
+```json
+{
+  "$template": "elementIsVisibleByLocator",
+  "params": {
+    "name": "First screen preview",
+    "locator": "#PreviewScreen-main",
+    "timeout": 30000
+  }
+}
+```
+
+### Example 4: Click a Button and Validate Result
+
+```json
+{
+  "type": "click",
+  "name": "Open App Details",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "App Details",
+    "exact": true,
+    "first": true
+  },
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Advance Settings"
+      }
+    }
+  ]
+}
+```
+
+### Example 5: Validate App Definition Download
 
 ```json
 {
@@ -491,7 +1005,7 @@ Use named actions when a workflow needs page-object logic, popup handling, Gmail
 }
 ```
 
-## Example: email ZIP download validation
+### Example 6: Validate Code ZIP from Email
 
 ```json
 {
@@ -514,7 +1028,7 @@ This action:
 5. Validates that the file exists and looks like a ZIP archive.
 6. Attaches the ZIP to the Playwright report.
 
-## Example: Build and Run page validation
+### Example 7: Build and Run Page Validation
 
 ```json
 {
@@ -534,33 +1048,30 @@ This action:
       }
     }
   ]
-},
-{
-  "type": "openRunOnDeviceModal",
-  "name": "Open the Run App on Your Device modal"
-},
-{
-  "type": "waitForQrCodeGenerated",
-  "name": "Validate the Connect Expo QR code is generated"
 }
 ```
 
-After `buildAndRunApp`, the active Playwright page becomes the newly opened run page. Normal JSON-driven validations and actions then run against that run page until you switch back with `switchToMainPage`.
+After `buildAndRunApp`, the active Playwright page becomes the newly opened run page.
 
-Use `postValidations` when you want to validate something immediately after a page action finishes. Execution order is:
+Normal JSON-driven validations and actions then run against that run page until you switch back with:
 
-```text
-action -> postValidations / validations -> nested pageActions
+```json
+{
+  "type": "switchToMainPage"
+}
 ```
 
-The older `validations` property on an action still works and runs after the action. `postValidations` is the preferred clearer name for new action-level checks.
+### Example 8: Validate an Element Inside an Iframe
 
+Some app-run content is rendered inside an iframe.
 
-## Example: Validate an element inside an iframe
+For example, the built app preview uses:
 
-Some app-run content is rendered inside an iframe. For example, the built app preview uses the iframe with id `emulator-iframe`.
+```text
+#emulator-iframe
+```
 
-To validate an element inside that iframe, add `frameLocator` to the locator configuration. The runner first enters the iframe, then finds the normal locator inside it.
+To validate an element inside that iframe, add `frameLocator`:
 
 ```json
 {
@@ -574,32 +1085,108 @@ To validate an element inside that iframe, add `frameLocator` to the locator con
 }
 ```
 
-You can also use `frameLocator` directly in a full locator object:
+The runner first enters the iframe, then finds the normal locator inside it.
+
+### Example 9: Validate After an Action
+
+Use `postValidations` when you want to validate something immediately after a page action finishes.
 
 ```json
 {
-  "name": "Run app login button is visible",
-  "locator": {
-    "strategy": "locator",
-    "locator": "#root div:has-text(\"Login\")",
-    "frameLocator": "#emulator-iframe"
-  },
-  "assertions": [
+  "type": "waitForBuildComplete",
+  "name": "Wait until the app run page is ready",
+  "postValidations": [
     {
-      "type": "visible",
-      "timeout": 30000
+      "$template": "elementIsVisibleByLocator",
+      "params": {
+        "name": "Run app root container is visible",
+        "locator": "#root>div",
+        "timeout": 30000
+      }
     }
   ]
 }
 ```
 
-Use this when the element is not on the main page, but inside an iframe.
+Execution order:
+
+```text
+action -> postValidations -> nested pageActions
+```
+
+The older `validations` property on an action still works and runs after the action. `postValidations` is preferred for new action-level checks.
+
+---
+
+## Soft Assertions
+
+The framework supports `softAssertions`.
+
+When `softAssertions` is `false`, the test stops immediately after a validation failure.
+
+When `softAssertions` is `true`, Playwright records the failure but continues executing the remaining validations.
+
+Default setting:
+
+```json
+"defaults": {
+  "softAssertions": false
+}
+```
+
+Enable for one test case:
+
+```json
+{
+  "name": "Open Settings screen from storyboard",
+  "enabled": true,
+  "softAssertions": true
+}
+```
+
+Use this when you want to collect all missing/broken UI fields in one run.
+
+---
+
+## When to Update the Schema
+
+The schema file is:
+
+```text
+schemas/testCases.schema.json
+```
+
+Do not add normal test cases into this file.
+
+Add normal test cases into:
+
+```text
+test-data/symplr_pages.json
+```
+
+Update the schema only when the framework supports a new type of configuration, such as:
+
+- New action type
+- New assertion type
+- New locator strategy
+- New top-level JSON section
+- New required property
+
+---
 
 ## Troubleshooting
 
 ### `npm run validate:data` fails
 
-Check the error message. It usually points to a missing token, invalid locator strategy, missing assertion value, missing validation set, or missing template parameter.
+Check the error message. It usually points to:
+
+- Missing token
+- Invalid locator strategy
+- Missing assertion value
+- Missing validation set
+- Missing template parameter
+- Missing scenario config parameter
+- Invalid action type
 
 ### Login fails
 
@@ -615,6 +1202,13 @@ Then delete the saved auth state and retry:
 
 ```bash
 rm -f playwright/.auth/user.json
+npm test
+```
+
+Windows PowerShell:
+
+```powershell
+Remove-Item playwright/.auth/user.json -ErrorAction SilentlyContinue
 npm test
 ```
 
@@ -652,6 +1246,24 @@ On Linux:
 npx playwright install --with-deps
 ```
 
+### Element is inside an iframe
+
+If a locator works manually but fails in the test, check whether the element is inside an iframe.
+
+Use `frameLocator`:
+
+```json
+{
+  "$template": "elementIsVisibleByLocator",
+  "params": {
+    "name": "Login button",
+    "locator": "#root div:has-text(\"Login\")",
+    "frameLocator": "#emulator-iframe",
+    "timeout": 30000
+  }
+}
+```
+
 ### HTML report does not open
 
 Run tests first, then run:
@@ -660,7 +1272,9 @@ Run tests first, then run:
 npm run report
 ```
 
-## Git hygiene
+---
+
+## Git Hygiene
 
 These files should stay out of Git:
 
@@ -675,4 +1289,51 @@ playwright-report/
 test-results/
 ```
 
-Commit `.env.example` and `secrets/.gitkeep`, but do not commit real credentials or tokens.
+Commit:
+
+```text
+.env.example
+secrets/.gitkeep
+```
+
+Do not commit real credentials, tokens, local auth state, reports, or generated test output.
+
+---
+
+## Quick Start Summary
+
+For a fresh setup:
+
+```bash
+git clone <repository-url>
+cd <repository-folder>
+npm ci
+npm run install:browsers
+cp .env.example .env
+```
+
+Update `.env`.
+
+If email tests are required:
+
+```bash
+npm run gmail:auth
+```
+
+Validate data:
+
+```bash
+npm run validate:data
+```
+
+Run tests:
+
+```bash
+npm test
+```
+
+Run one test:
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "Home page loads correctly" --headed
+```

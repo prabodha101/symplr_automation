@@ -15,19 +15,19 @@ const testData = resolveReusableValidations(
 
 type LocatorConfig = {
   strategy:
-    | "id"
-    | "role"
-    | "text"
-    | "label"
-    | "img"
-    | "placeholder"
-    | "altText"
-    | "title"
-    | "testId"
-    | "css"
-    | "xpath"
-    | "locator"
-    | "custom";
+  | "id"
+  | "role"
+  | "text"
+  | "label"
+  | "img"
+  | "placeholder"
+  | "altText"
+  | "title"
+  | "testId"
+  | "css"
+  | "xpath"
+  | "locator"
+  | "custom";
   id?: string;
   selector?: string;
   text?: string;
@@ -49,23 +49,23 @@ type LocatorConfig = {
 
 type ActionConfig = {
   type:
-    | "click"
-    | "fill"
-    | "check"
-    | "uncheck"
-    | "hover"
-    | "press"
-    | "selectOption"
-    | "download"
-    | "downloadAppDefinition"
-    | "downloadCodeFromEmail"
-    | "connectToGitHub"
-    | "buildAndRunApp"
-    | "waitForBuildComplete"
-    | "openRunOnDeviceModal"
-    | "waitForQrCodeGenerated"
-    | "switchToMainPage"
-    | "switchToRunPage";
+  | "click"
+  | "fill"
+  | "check"
+  | "uncheck"
+  | "hover"
+  | "press"
+  | "selectOption"
+  | "download"
+  | "downloadAppDefinition"
+  | "downloadCodeFromEmail"
+  | "connectToGitHub"
+  | "buildAndRunApp"
+  | "waitForBuildComplete"
+  | "openRunOnDeviceModal"
+  | "waitForQrCodeGenerated"
+  | "switchToMainPage"
+  | "switchToRunPage";
   name?: string;
   value?: string | number | boolean;
   locator?: LocatorConfig;
@@ -88,27 +88,27 @@ type ActionConfig = {
 
 type AssertionConfig = {
   type:
-    | "visible"
-    | "hidden"
-    | "attached"
-    | "enabled"
-    | "disabled"
-    | "editable"
-    | "checked"
-    | "unchecked"
-    | "empty"
-    | "textEquals"
-    | "textContains"
-    | "valueEquals"
-    | "attributeEquals"
-    | "countEquals"
-    | "countGreaterThan"
-    | "classContains"
-    | "cssEquals"
-    | "titleEquals"
-    | "titleContains"
-    | "urlEquals"
-    | "urlContains";
+  | "visible"
+  | "hidden"
+  | "attached"
+  | "enabled"
+  | "disabled"
+  | "editable"
+  | "checked"
+  | "unchecked"
+  | "empty"
+  | "textEquals"
+  | "textContains"
+  | "valueEquals"
+  | "attributeEquals"
+  | "countEquals"
+  | "countGreaterThan"
+  | "classContains"
+  | "cssEquals"
+  | "titleEquals"
+  | "titleContains"
+  | "urlEquals"
+  | "urlContains";
   expected?: string | number | boolean;
   expectedRegex?: string;
   flags?: string;
@@ -149,17 +149,17 @@ type IncludeSection =
 type TestCaseInclude =
   | string
   | {
-      name: string;
-      sections?: IncludeSection[];
-    };
+    name: string;
+    sections?: IncludeSection[];
+  };
 
 type ValidationTemplateDefinition =
   | ValidationConfig
   | ValidationConfig[]
   | {
-      defaults?: Record<string, unknown>;
-      template: ValidationConfig | ValidationConfig[];
-    };
+    defaults?: Record<string, unknown>;
+    template: ValidationConfig | ValidationConfig[];
+  };
 
 type ScenarioDefinition = {
   description?: string;
@@ -648,7 +648,7 @@ async function runConfiguredScenario(
   if (!rawDefinition) {
     throw new Error(
       `Scenario definition not found for "${pageCase.scenario}". ` +
-        `Add it under scenarioDefinitions in test-data/symplr_pages.json.`,
+      `Add it under scenarioDefinitions in test-data/symplr_pages.json.`,
     );
   }
 
@@ -934,10 +934,14 @@ async function runPageActions(
 function buildTargetUrl(pageCase: PageCase, data: TestData): string {
   if (pageCase.url) return pageCase.url;
 
-  const baseUrl = pageCase.baseUrl ?? data.defaults?.baseUrl;
+  const baseUrl =
+    process.env.APP_URL ??
+    pageCase.baseUrl ??
+    data.defaults?.baseUrl;
+
   if (!baseUrl) {
     throw new Error(
-      `Page "${pageCase.name}" must define either url or path with defaults.baseUrl.`,
+      `Page "${pageCase.name}" must define either url or path, and APP_URL must be set in .env.`,
     );
   }
 
