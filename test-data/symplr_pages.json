@@ -1,7 +1,6 @@
 {
   "$schema": "../schemas/testCases.schema.json",
   "defaults": {
-    "baseUrl": "https://101studio.co/",
     "navigationTimeout": 15000,
     "softAssertions": false
   },
@@ -11,6 +10,7 @@
     "templateId": "cb1e24ce-42a1-4820-b9fc-d4979ab87ef6",
     "figmaUrl": "https://www.figma.com/design/oqD2rTJHlIifgedF0RHIa6/Food-Couriers---Food-Delivery-App---UI-UX-Design-Case-Study--Community---Copy---Copy---Copy-?node-id=2-10659&m=dev",
     "prompt": "Build hello world app with a button that shows an alert when clicked",
+    "appShareEmail": "akilaj@101digital.io",
     "homePageTitle": "Manage and Build Apps | Symplr",
     "dashboardUrlSegment": "/dashboard",
     "buildAppsHeading": "Build apps with a blueprint.",
@@ -24,7 +24,11 @@
     "screensText": "Screens",
     "themesText": "Themes",
     "runOnDeviceText": "Run App on Your Device",
-    "connectExpoImageAlt": "Connect Expo"
+    "connectExpoImageAlt": "Connect Expo",
+    "onboardingStartButtonText": "Start",
+    "onboardingNextButtonText": "Next",
+    "onboardingDoneButtonText": "Done",
+    "onboardingGetStartedButtonText": "Get Started"
   },
   "scenarioDefinitions": {
     "prompt": {
@@ -176,7 +180,8 @@
           "locator": {
             "strategy": "locator",
             "locator": "div[data-template-id=\"${tokens.templateId}\"]",
-            "exact": true
+            "exact": true,
+            "nth": 1
           }
         },
         {
@@ -715,7 +720,7 @@
       ]
     },
     {
-      "name": "Build an app from a text prompt",
+      "name": "Create an app from a text prompt",
       "enabled": true,
       "scenario": "prompt",
       "scenarioConfig": {
@@ -735,7 +740,7 @@
       ]
     },
     {
-      "name": "Build an app from Figma screens",
+      "name": "Create an app from Figma screens",
       "enabled": true,
       "scenario": "figma",
       "scenarioConfig": {
@@ -756,7 +761,7 @@
       ]
     },
     {
-      "name": "Build an app from a template",
+      "name": "Create an app from a template",
       "enabled": true,
       "scenario": "template",
       "scenarioConfig": {
@@ -776,7 +781,7 @@
       ]
     },
     {
-      "name": "Load an existing app into the Symplr storyboard",
+      "name": "Load an existing app into the Symplr Blueprint",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -796,7 +801,7 @@
       ]
     },
     {
-      "name": "Open Blueprint screen from storyboard",
+      "name": "Open Blueprint screen from dashboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -829,7 +834,213 @@
       ]
     },
     {
-      "name": "Open Pages screen from storyboard",
+      "name": "Open Pages screen from dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Pages\"]"
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "pagesScreen"
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "first page preview screen",
+            "locator": "#PreviewScreen-main"
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "first element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "Welcome Back text element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"ASText-949871\")",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "mobileNumber element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"mobileNumber\")",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "Forget your password element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Forgot_Password_\")",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "Don't have an account element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Don_t_have_an_account_\")",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "Register element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Register\")",
+            "first": true
+          }
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "#PreviewScreen-main"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"ASText-949871\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"mobileNumber\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Forgot_Password_\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Don_t_have_an_account_\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Register\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Generic Flow: Open Pages screen from dashboard and validate",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -890,7 +1101,7 @@
       ]
     },
     {
-      "name": "Open Themes screen from storyboard",
+      "name": "Open Themes screen from dashboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -914,7 +1125,7 @@
       ]
     },
     {
-      "name": "Open Variables screen from storyboard",
+      "name": "Open Variables screen from dashboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -938,7 +1149,7 @@
       ]
     },
     {
-      "name": "Open Settings screen from storyboard",
+      "name": "Open Settings screen from dashboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -1381,6 +1592,117 @@
               }
             }
           ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Access",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "buttonIsVisible",
+              "params": {
+                "name": "Invite Members"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Share an app with an existing user",
+      "enabled": true,
+      "scenario": "template",
+      "scenarioConfig": {
+        "type": "template",
+        "templateName": "${tokens.templateName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[aria-label=\"Share\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "${tokens.blueprintText} label",
+            "locator": "p:has-text(\"Share App\")",
+            "timeout": 30000
+          }
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "fill",
+          "name": "Entering email to share",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Email",
+            "exact": false
+          },
+          "value": "${tokens.appShareEmail}"
+        },
+        {
+          "type": "click",
+          "name": "Click Start Building",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Invite",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Settings\"]",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Access",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "buttonIsVisible",
+              "params": {
+                "name": "Invite Members"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "${tokens.appShareEmail}",
+                "timeout": 30000
+              }
+            }
+          ]
         }
       ]
     },
@@ -1455,7 +1777,7 @@
       ]
     },
     {
-      "name": "Validate that the app can be built and run from the storyboard",
+      "name": "Validate that the app can be built and run from the dashboard",
       "enabled": true,
       "scenario": "existingApp",
       "scenarioConfig": {
@@ -1520,6 +1842,51 @@
                 "locator": "#root [data-testid=\"label-Login\"]",
                 "timeout": 30000,
                 "frameLocator": "#emulator-iframe"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Generic Flow: Validate that the app can be built and run from the dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "buildAndRunApp",
+          "name": "Click Build and switch to the app run page"
+        },
+        {
+          "type": "waitForBuildComplete",
+          "name": "Wait until the app run page is ready",
+          "postValidations": [
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> root container is visible after build completes",
+                "locator": "#root>div",
+                "first": true,
+                "timeout": 30000
               }
             }
           ]
@@ -1646,14 +2013,14 @@
         "appName": "${tokens.appName}"
       },
       "includeTestCases": [
-        "Open Blueprint screen from storyboard",
-        "Open Pages screen from storyboard",
-        "Open Themes screen from storyboard",
-        "Open Variables screen from storyboard",
-        "Open Settings screen from storyboard",
+        "Open Blueprint screen from dashboard",
+        "Open Pages screen from dashboard",
+        "Open Themes screen from dashboard",
+        "Open Variables screen from dashboard",
+        "Open Settings screen from dashboard",
         "Validate that code can be sent by email from Developer Options",
         "Validate that code can be pushed to GitHub from Developer Options",
-        "Validate that the app can be built and run from the storyboard",
+        "Validate that the app can be built and run from the dashboard",
         "Generate a QR code to run the app on a real device on build page"
       ]
     },
@@ -1666,14 +2033,14 @@
         "templateName": "${tokens.templateName}"
       },
       "includeTestCases": [
-        "Open Blueprint screen from storyboard",
-        "Open Pages screen from storyboard",
-        "Open Themes screen from storyboard",
-        "Open Variables screen from storyboard",
-        "Open Settings screen from storyboard",
+        "Open Blueprint screen from dashboard",
+        "Open Pages screen from dashboard",
+        "Open Themes screen from dashboard",
+        "Open Variables screen from dashboard",
+        "Open Settings screen from dashboard",
+        "Share an app with an existing user",
         "Validate that code can be sent by email from Developer Options",
-        "Validate that code can be pushed to GitHub from Developer Options",
-        "Validate that the app can be built and run from the storyboard",
+        "Validate that the app can be built and run from the dashboard",
         "Generate a QR code to run the app on a real device on build page"
       ]
     },
@@ -1687,13 +2054,34 @@
         "figmaAppName": "${tokens.appName}"
       },
       "includeTestCases": [
-        "Open Blueprint screen from storyboard",
-        "Open Pages screen from storyboard",
-        "Open Themes screen from storyboard",
-        "Open Variables screen from storyboard",
-        "Open Settings screen from storyboard",
+        "Open Blueprint screen from dashboard",
+        "Generic Flow: Open Pages screen from dashboard and validate",
+        "Open Themes screen from dashboard",
+        "Open Variables screen from dashboard",
+        "Open Settings screen from dashboard",
         "Validate that code can be sent by email from Developer Options",
-        "Validate that code can be pushed to GitHub from Developer Options"
+        "Generic Flow: Validate that the app can be built and run from the dashboard",
+        "Generate a QR code to run the app on a real device on build page"
+      ]
+    },
+    {
+      "name": "End to End scenario test using prompt",
+      "enabled": true,
+      "scenario": "figma",
+      "scenarioConfig": {
+        "type": "figma",
+        "figmaUrl": "${tokens.figmaUrl}",
+        "figmaAppName": "${tokens.appName}"
+      },
+      "includeTestCases": [
+        "Open Blueprint screen from dashboard",
+        "Generic Flow: Open Pages screen from dashboard and validate",
+        "Open Themes screen from dashboard",
+        "Open Variables screen from dashboard",
+        "Open Settings screen from dashboard",
+        "Validate that code can be sent by email from Developer Options",
+        "Generic Flow: Validate that the app can be built and run from the dashboard",
+        "Generate a QR code to run the app on a real device on build page"
       ]
     }
   ]
