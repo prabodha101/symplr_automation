@@ -84,6 +84,12 @@ type ActionConfig = {
   emailTo?: string;
   emailBodyContains?: string;
   pollIntervalMs?: number;
+  /** Optional for generic actions such as click. If true, skip the action when the locator is not visible. */
+  optional?: boolean;
+  /** Optional repeat count for generic actions such as click. */
+  repeat?: number;
+  /** Optional delay between repeated actions. */
+  delayMs?: number;
 };
 
 type AssertionConfig = {
@@ -184,6 +190,20 @@ type PageCase = {
   pageAssertions?: AssertionConfig[];
   validations?: ValidationConfig[];
   includeTestCases?: TestCaseInclude[];
+  auth?: AuthConfig;
+};
+
+type AuthConfig = {
+  /**
+   * reuse: default behavior. Reuse saved login session if available and active.
+   * fresh: force the existing login flow before this test starts.
+   */
+  session?: "reuse" | "fresh";
+  /**
+   * Save final browser state after the test body finishes. Useful after onboarding
+   * completes so future tests reuse the post-onboarding session.
+   */
+  saveSessionAfterTest?: boolean;
 };
 
 type TestData = {
@@ -603,6 +623,11 @@ for (const testCase of testData.testCases.filter(
   (item) => item.enabled !== false,
 )) {
   test.describe(testCase.name, () => {
+    test.use({
+      authSessionMode: testCase.auth?.session ?? "reuse",
+      saveAuthSessionAfterTest: testCase.auth?.saveSessionAfterTest ?? false,
+    });
+
     test(`validates configured checks for ${testCase.name}`, async ({
       page,
     }, testInfo) => {
@@ -1111,7 +1136,7 @@ async function runAction(
   switch (action.type) {
     case "click":
       if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
-      await locator.click();
+      await runClickAction(context, locator, action);
       return;
     case "fill":
       if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
@@ -1199,6 +1224,38 @@ async function runAction(
     default: {
       const unknown: never = action.type;
       throw new Error(`Unsupported action type: ${unknown}`);
+    }
+  }
+}
+
+
+async function runClickAction(
+  context: RunContext,
+  locator: Locator,
+  action: ActionConfig,
+): Promise<void> {
+  const repeat = action.repeat ?? 1;
+  const timeout = action.timeout ?? 5000;
+  const delayMs = action.delayMs ?? 0;
+
+  for (let attempt = 0; attempt < repeat; attempt += 1) {
+    if (action.optional) {
+      const visible = await locator
+        .isVisible({ timeout })
+        .catch(() => false);
+
+      if (!visible) {
+        console.log(
+          `  >> Optional click skipped because locator is not visible: ${action.name ?? action.type}`,
+        );
+        return;
+      }
+    }
+
+    await locator.click({ timeout });
+
+    if (delayMs > 0 && attempt < repeat - 1) {
+      await context.activePage.waitForTimeout(delayMs);
     }
   }
 }

@@ -10,6 +10,7 @@
     "templateId": "cb1e24ce-42a1-4820-b9fc-d4979ab87ef6",
     "figmaUrl": "https://www.figma.com/design/oqD2rTJHlIifgedF0RHIa6/Food-Couriers---Food-Delivery-App---UI-UX-Design-Case-Study--Community---Copy---Copy---Copy-?node-id=2-10659&m=dev",
     "prompt": "Build hello world app with a button that shows an alert when clicked",
+    "appShareEmail": "akilaj@101digital.io",
     "homePageTitle": "Manage and Build Apps | Symplr",
     "dashboardUrlSegment": "/dashboard",
     "buildAppsHeading": "Build apps with a blueprint.",
@@ -23,7 +24,11 @@
     "screensText": "Screens",
     "themesText": "Themes",
     "runOnDeviceText": "Run App on Your Device",
-    "connectExpoImageAlt": "Connect Expo"
+    "connectExpoImageAlt": "Connect Expo",
+    "onboardingStartButtonText": "Start",
+    "onboardingNextButtonText": "Next",
+    "onboardingDoneButtonText": "Done",
+    "onboardingGetStartedButtonText": "Get Started"
   },
   "scenarioDefinitions": {
     "prompt": {
@@ -710,6 +715,53 @@
           "params": {
             "text": "${tokens.createFromTemplateText}"
           }
+        }
+      ]
+    },
+    {
+      "name": "Complete new user onboarding flow",
+      "enabled": true,
+      "path": "/",
+      "auth": {
+        "session": "fresh",
+        "saveSessionAfterTest": true
+      },
+      "pageActions": [
+        {
+          "type": "click",
+          "name": "Click through onboarding Start buttons if they appear",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.onboardingStartButtonText}",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "name": "Click through onboarding Next buttons if they appear",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.onboardingNextButtonText}",
+            "exact": true
+          },
+          "optional": true,
+          "repeat": 3,
+          "timeout": 5000,
+          "delayMs": 500
+        },
+        {
+          "type": "click",
+          "name": "Click Done if it appears",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.onboardingDoneButtonText}",
+            "exact": true
+          },
+          "optional": true,
+          "timeout": 5000
         }
       ]
     },
@@ -1608,6 +1660,99 @@
       ]
     },
     {
+      "name": "Share app with existing user",
+      "enabled": true,
+      "scenario": "template",
+      "scenarioConfig": {
+        "type": "template",
+        "templateName": "${tokens.templateName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[aria-label=\"Share\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "${tokens.blueprintText} label",
+            "locator": "p:has-text(\"Share App\")",
+            "timeout": 30000
+          }
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "fill",
+          "name": "Entering email to share",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Email",
+            "exact": false
+          },
+          "value": "${tokens.appShareEmail}"
+        },
+        {
+          "type": "click",
+          "name": "Click Start Building",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Invite",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Settings\"]",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Access",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "buttonIsVisible",
+              "params": {
+                "name": "Invite Members"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "${tokens.appShareEmail}",
+                "timeout": 30000
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Validate that code can be sent by email from Developer Options",
       "enabled": true,
       "scenario": "existingApp",
@@ -1939,6 +2084,7 @@
         "Open Themes screen from dashboard",
         "Open Variables screen from dashboard",
         "Open Settings screen from dashboard",
+        "Share app with existing user",
         "Validate that code can be sent by email from Developer Options",
         "Validate that the app can be built and run from the dashboard",
         "Generate a QR code to run the app on a real device on build page"

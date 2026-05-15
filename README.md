@@ -1174,6 +1174,83 @@ Update the schema only when the framework supports a new type of configuration, 
 
 ---
 
+
+---
+
+## New User Onboarding Test
+
+The framework now supports a config-driven onboarding test without changing the normal login/session behavior for existing tests.
+
+The test case is defined in:
+
+```text
+test-data/symplr_pages.json
+```
+
+Test case name:
+
+```text
+Complete new user onboarding flow
+```
+
+This test is disabled by default because onboarding normally appears only for a brand-new Symplr user. To run it:
+
+1. Configure `.env` with a Google account that is registered with Symplr but has not completed onboarding yet.
+2. Set this test case to `"enabled": true` in `test-data/symplr_pages.json`.
+3. Run the test by name:
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "Complete new user onboarding flow" --headed
+```
+
+The test uses this auth configuration:
+
+```json
+"auth": {
+  "session": "fresh",
+  "saveSessionAfterTest": true
+}
+```
+
+This means:
+
+- `session: "fresh"` forces the existing Google login flow before this test starts.
+- `saveSessionAfterTest: true` saves the browser session again after onboarding completes.
+
+The onboarding button clicks are still configured in JSON. Example:
+
+```json
+{
+  "type": "click",
+  "name": "Click through onboarding Next buttons if they appear",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "${tokens.onboardingNextButtonText}",
+    "exact": true
+  },
+  "optional": true,
+  "repeat": 5,
+  "timeout": 5000,
+  "delayMs": 500
+}
+```
+
+The optional/repeat behavior is useful for onboarding because the number of modal steps can change:
+
+- `optional: true` skips the click if the button is not visible.
+- `repeat: 5` tries to click the same button up to five times.
+- `delayMs: 500` waits briefly between repeated clicks.
+
+If the onboarding button text changes, update the related tokens:
+
+```json
+"onboardingNextButtonText": "Next",
+"onboardingFinishButtonText": "Finish",
+"onboardingDoneButtonText": "Done",
+"onboardingGetStartedButtonText": "Get Started"
+```
+
 ## Troubleshooting
 
 ### `npm run validate:data` fails

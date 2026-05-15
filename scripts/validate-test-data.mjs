@@ -134,6 +134,7 @@ for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
   if (pageCase?.scenarioConfig !== undefined && (pageCase.scenarioConfig === null || typeof pageCase.scenarioConfig !== 'object' || Array.isArray(pageCase.scenarioConfig))) {
     errors.push(`${prefix}: scenarioConfig must be an object when provided.`);
   }
+  validateAuthConfig(`${prefix}.auth`, pageCase?.auth);
   if (pageCase?.scenario && scenarioDefinitions[pageCase.scenario]) {
     const requiredScenarioConfigKeys = collectScenarioConfigPlaceholders(scenarioDefinitions[pageCase.scenario]);
     for (const key of requiredScenarioConfigKeys) {
@@ -225,6 +226,23 @@ function hasNestedProperty(value, key) {
   }
 
   return true;
+}
+
+
+function validateAuthConfig(prefix, auth) {
+  if (auth === undefined) return;
+  if (auth === null || typeof auth !== 'object' || Array.isArray(auth)) {
+    errors.push(`${prefix}: auth must be an object when provided.`);
+    return;
+  }
+
+  if (auth.session !== undefined && !['reuse', 'fresh'].includes(auth.session)) {
+    errors.push(`${prefix}.session: must be "reuse" or "fresh".`);
+  }
+
+  if (auth.saveSessionAfterTest !== undefined && typeof auth.saveSessionAfterTest !== 'boolean') {
+    errors.push(`${prefix}.saveSessionAfterTest: must be true or false.`);
+  }
 }
 
 function validateScenarioDefinition(prefix, scenarioDefinition) {
@@ -412,6 +430,15 @@ function validateAction(prefix, action) {
   }
   if (action.pollIntervalMs !== undefined && typeof action.pollIntervalMs !== 'number') {
     errors.push(`${prefix}: pollIntervalMs must be a number.`);
+  }
+  if (action.optional !== undefined && typeof action.optional !== 'boolean') {
+    errors.push(`${prefix}: optional must be true or false.`);
+  }
+  if (action.repeat !== undefined && typeof action.repeat !== 'number') {
+    errors.push(`${prefix}: repeat must be a number.`);
+  }
+  if (action.delayMs !== undefined && typeof action.delayMs !== 'number') {
+    errors.push(`${prefix}: delayMs must be a number.`);
   }
 
   for (const [validationIndex, validation] of (action.validations ?? []).entries()) {

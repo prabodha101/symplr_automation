@@ -148,6 +148,10 @@
           "items": {
             "$ref": "#/$defs/testCaseInclude"
           }
+        },
+        "auth": {
+          "$ref": "#/$defs/authConfig",
+          "description": "Optional authentication behavior for this test case. Default is reuse."
         }
       },
       "anyOf": [
@@ -864,6 +868,24 @@
             "number",
             "string"
           ]
+        },
+        "optional": {
+          "type": "boolean",
+          "description": "For generic actions such as click, skip the action when the locator is not visible."
+        },
+        "repeat": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Repeat count for generic actions such as click."
+        },
+        "delayMs": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Delay in milliseconds between repeated actions."
         }
       },
       "allOf": [
@@ -1166,6 +1188,24 @@
           "items": {
             "$ref": "#/$defs/validationOrReusable"
           }
+        }
+      }
+    },
+    "authConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "type": "string",
+          "enum": [
+            "reuse",
+            "fresh"
+          ],
+          "description": "reuse keeps the existing saved-session behavior. fresh forces the login flow before this test starts."
+        },
+        "saveSessionAfterTest": {
+          "type": "boolean",
+          "description": "If true, save browser storage state after the test body finishes."
         }
       }
     }
