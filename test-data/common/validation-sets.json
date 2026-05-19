@@ -1,0 +1,166 @@
+{
+  "validationSets": {
+    "blueprintScreen": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "${tokens.blueprintText} label",
+          "locator": "p:has-text(\"${tokens.blueprintText}\")",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "${tokens.startNodeText}"
+        }
+      },
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "${tokens.downloadAppDefinitionButtonText} button",
+          "locator": "div[aria-label=\"${tokens.downloadAppDefinitionButtonText}\"]",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "First page of the app",
+          "locator": "div[data-id=\"start\"] + div[data-id^=\"screen:\"]",
+          "timeout": 30000
+        }
+      }
+    ],
+    "pagesScreen": [
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "${tokens.screensText}",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "countGreaterThanElementByLocator",
+        "params": {
+          "name": "Screens list",
+          "locator": "div.Screens-list-item.MuiBox-root",
+          "expected": 0,
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "First Screen",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "Enable Nav Bar"
+        }
+      }
+    ],
+    "themesScreen": [
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "${tokens.themesText}",
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Add"
+        }
+      }
+    ],
+    "variablesScreen": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "Variables label",
+          "locator": "p:has-text(\"Variables\")",
+          "timeout": 30000
+        }
+      }
+    ],
+    "settingsScreen": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "App Assets heading",
+          "locator": "p:has-text(\"App Assets\")",
+          "first": true,
+          "timeout": 30000
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "App Assets",
+          "first": true
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "App Details",
+          "first": true
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Security",
+          "first": true
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "App Bar & Nav Bar",
+          "first": true
+        }
+      }
+    ],
+    "appDefinitionValidation": [
+      {
+        "$template": "elementIsVisibleByLocator",
+        "params": {
+          "name": "${tokens.downloadAppDefinitionButtonText} button",
+          "locator": "div[aria-label=\"${tokens.downloadAppDefinitionButtonText}\"]",
+          "timeout": 30000
+        }
+      }
+    ],
+    "appRunQrCodeModal": [
+      {
+        "$template": "validateElementState",
+        "params": {
+          "name": "Connect Expo QR code",
+          "locator": {
+            "strategy": "role",
+            "role": "img",
+            "name": "${tokens.connectExpoImageAlt}",
+            "exact": true
+          },
+          "assertion": "visible",
+          "timeout": 60000
+        }
+      }
+    ],
+    "storyboardReady": [
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Home",
+          "timeout": 300000
+        }
+      }
+    ]
+  }
+}

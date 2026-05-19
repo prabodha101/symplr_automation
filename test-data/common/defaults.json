@@ -1,0 +1,6 @@
+{
+  "defaults": {
+    "navigationTimeout": 15000,
+    "softAssertions": false
+  }
+}

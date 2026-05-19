@@ -1,0 +1,232 @@
+{
+  "testCases": [
+    {
+      "name": "Validate that the app can be built and run from the dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "buildAndRunApp",
+          "name": "Click Build and switch to the app run page"
+        },
+        {
+          "type": "waitForBuildComplete",
+          "name": "Wait until the app run page is ready",
+          "postValidations": [
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> root container is visible after build completes",
+                "locator": "#root>div",
+                "first": true,
+                "timeout": 30000
+              }
+            },
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> login button is visible after build completes",
+                "locator": "#root [data-testid=\"textInput-mobileNumber\"]",
+                "timeout": 300000,
+                "frameLocator": "#emulator-iframe"
+              }
+            },
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> login button is visible after build completes",
+                "locator": "#root [data-testid=\"textInput-textInput-password\"]",
+                "timeout": 30000,
+                "frameLocator": "#emulator-iframe"
+              }
+            },
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> login button is visible after build completes",
+                "locator": "#root [data-testid=\"label-Login\"]",
+                "timeout": 30000,
+                "frameLocator": "#emulator-iframe"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Generic Flow: Validate that the app can be built and run from the dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "buildAndRunApp",
+          "name": "Click Build and switch to the app run page"
+        },
+        {
+          "type": "waitForBuildComplete",
+          "name": "Wait until the app run page is ready",
+          "postValidations": [
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> root container is visible after build completes",
+                "locator": "#root>div",
+                "first": true,
+                "timeout": 30000
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Validate Generating a QR code to run the app on a real device after app is built",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "buildAndRunApp",
+          "name": "Click Build and switch to the app run page"
+        },
+        {
+          "type": "waitForBuildComplete",
+          "name": "Wait until the app run page is ready",
+          "postValidations": [
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> root container is visible after build completes",
+                "locator": "#root>div",
+                "first": true,
+                "timeout": 30000
+              }
+            },
+            {
+              "$template": "elementIsVisibleByLocator",
+              "params": {
+                "name": "Run app -> login button is visible after build completes",
+                "locator": "#root [data-testid=\"textInput-mobileNumber\"]",
+                "timeout": 300000,
+                "frameLocator": "#emulator-iframe"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[aria-label=\"Run App on Your Device\"]"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Run the App on Your Device"
+              }
+            },
+            {
+              "$template": "elementIsVisible",
+              "params": {
+                "strategy": "img",
+                "name": "Connect Expo",
+                "timeout": 90000
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Generate a QR code to run the app on a real device on build page",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[aria-label=\"Run App on Your Device\"]"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Run the App on Your Device"
+              }
+            },
+            {
+              "$template": "elementIsVisible",
+              "params": {
+                "strategy": "img",
+                "name": "Connect Expo",
+                "timeout": 90000
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

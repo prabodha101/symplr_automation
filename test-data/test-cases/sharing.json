@@ -1,0 +1,97 @@
+{
+  "testCases": [
+    {
+      "name": "Share an app with an existing user",
+      "enabled": true,
+      "scenario": "template",
+      "scenarioConfig": {
+        "type": "template",
+        "templateName": "${tokens.templateName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[aria-label=\"Share\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "${tokens.blueprintText} label",
+            "locator": "p:has-text(\"Share App\")",
+            "timeout": 30000
+          }
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "fill",
+          "name": "Entering email to share",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Email",
+            "exact": false
+          },
+          "value": "${tokens.appShareEmail}"
+        },
+        {
+          "type": "click",
+          "name": "Click Start Building",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Invite",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Settings\"]",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Access",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "buttonIsVisible",
+              "params": {
+                "name": "Invite Members"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "${tokens.appShareEmail}",
+                "timeout": 30000
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

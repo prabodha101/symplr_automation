@@ -1,0 +1,85 @@
+{
+  "testCases": [
+    {
+      "name": "Create an app from a text prompt",
+      "enabled": true,
+      "scenario": "prompt",
+      "scenarioConfig": {
+        "type": "prompt",
+        "prompt": "${tokens.prompt}"
+      },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Create an app from Figma screens",
+      "enabled": true,
+      "scenario": "figma",
+      "scenarioConfig": {
+        "type": "figma",
+        "figmaUrl": "${tokens.figmaUrl}",
+        "figmaAppName": "${tokens.appName}"
+      },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Create an app from a template",
+      "enabled": true,
+      "scenario": "template",
+      "scenarioConfig": {
+        "type": "template",
+        "templateName": "${tokens.templateName}"
+      },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Load an existing app into the Symplr Blueprint",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "pageAssertions": [
+        {
+          "type": "urlContains",
+          "expected": "/dashboard/projects"
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
+    }
+  ]
+}

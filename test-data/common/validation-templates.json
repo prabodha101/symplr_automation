@@ -1,0 +1,298 @@
+{
+  "validationTemplates": {
+    "elementIsVisibleById": {
+      "name": "Validate '${param.name}' is visible",
+      "locator": {
+        "strategy": "id",
+        "id": "${param.id}"
+      },
+      "assertions": [
+        {
+          "type": "visible"
+        }
+      ]
+    },
+    "elementIsVisible": {
+      "defaults": {
+        "timeout": 60000
+      },
+      "template": {
+        "name": "Validate '${param.name}' element is visible",
+        "locator": {
+          "strategy": "${param.strategy}",
+          "name": "${param.name}"
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "textIsVisibleById": {
+      "name": "Validate '${param.text}' text is visible",
+      "locator": {
+        "strategy": "id",
+        "id": "${param.id}"
+      },
+      "assertions": [
+        {
+          "type": "visible"
+        },
+        {
+          "type": "textEquals",
+          "expected": "${param.text}"
+        }
+      ]
+    },
+    "headingIsVisibleByText_OLD": {
+      "name": "Validate '${param.text}' heading is visible",
+      "locator": {
+        "strategy": "role",
+        "role": "heading",
+        "name": "${param.text}",
+        "level": "${param.level}",
+        "exact": true
+      },
+      "assertions": [
+        {
+          "type": "visible"
+        }
+      ]
+    },
+    "headingIsVisibleByText": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.text}' heading is visible",
+        "locator": {
+          "strategy": "role",
+          "role": "heading",
+          "name": "${param.text}",
+          "level": "${param.level}",
+          "exact": true
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "textIsVisible": {
+      "defaults": {
+        "timeout": 5000,
+        "nth": 0
+      },
+      "template": {
+        "name": "Validate '${param.text}' text is visible",
+        "locator": {
+          "strategy": "text",
+          "text": "${param.text}",
+          "exact": true,
+          "nth": "${param.nth}"
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "buttonIsVisible": {
+      "defaults": {
+        "timeout": 5000,
+        "first": false
+      },
+      "template": {
+        "name": "Validate '${param.name}' button is visible",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "${param.name}",
+          "exact": true,
+          "first": "${params.first}"
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "assertElementByRole": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' ${param.role} is ${param.assertion}",
+        "locator": {
+          "strategy": "role",
+          "role": "${param.role}",
+          "name": "${param.name}",
+          "exact": true
+        },
+        "assertions": [
+          {
+            "type": "${param.assertion}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "checkboxStateById": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' checkbox is ${param.assertion}",
+        "locator": {
+          "strategy": "id",
+          "id": "${param.id}"
+        },
+        "assertions": [
+          {
+            "type": "${param.assertion}"
+          }
+        ]
+      }
+    },
+    "elementIsVisibleByLocator": {
+      "defaults": {
+        "timeout": 5000,
+        "first": false,
+        "frameLocator": ""
+      },
+      "template": {
+        "name": "Validate '${param.name}' is visible",
+        "locator": {
+          "strategy": "locator",
+          "locator": "${param.locator}",
+          "first": "${params.first}",
+          "frameLocator": "${param.frameLocator}"
+        },
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "textIsVisibleByLocator": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' text equals '${param.text}'",
+        "locator": "${param.locator}",
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          },
+          {
+            "type": "textEquals",
+            "expected": "${param.text}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "validateElementState": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' is ${param.assertion}",
+        "locator": "${param.locator}",
+        "assertions": [
+          {
+            "type": "${param.assertion}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "validateElementStateByLocator": {
+      "defaults": {
+        "timeout": 5000,
+        "nth": 0
+      },
+      "template": {
+        "name": "Validate '${param.name}' is ${param.assertion}",
+        "locator": {
+          "strategy": "locator",
+          "locator": "${param.locator}",
+          "nth": "${param.nth}"
+        },
+        "assertions": [
+          {
+            "type": "${param.assertion}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "elementValueIsEquals": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' value equals '${param.value}'",
+        "locator": "${param.locator}",
+        "assertions": [
+          {
+            "type": "visible",
+            "timeout": "${param.timeout}"
+          },
+          {
+            "type": "valueEquals",
+            "expected": "${param.value}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "countGreaterThanElementByLocator": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' count is greater than ${param.expected}",
+        "locator": {
+          "strategy": "locator",
+          "locator": "${param.locator}"
+        },
+        "assertions": [
+          {
+            "type": "countGreaterThan",
+            "expected": "${param.expected}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
+    "countGreaterThanElement": {
+      "defaults": {
+        "timeout": 5000
+      },
+      "template": {
+        "name": "Validate '${param.name}' count is greater than ${param.expected}",
+        "locator": "${param.locator}",
+        "assertions": [
+          {
+            "type": "countGreaterThan",
+            "expected": "${param.expected}",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    }
+  }
+}

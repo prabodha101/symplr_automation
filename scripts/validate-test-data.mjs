@@ -4,9 +4,7 @@ import path from 'node:path';
 
 const filePath = process.argv[2] ?? 'test-data/symplr_pages.json';
 const absolutePath = path.resolve(process.cwd(), filePath);
-const rawData = JSON.parse(
-  fs.readFileSync(absolutePath, 'utf-8').replace(/^\uFEFF/, '')
-);
+const rawData = loadConfigWithImports(absolutePath);
 
 const errors = [];
 let data = rawData;
@@ -14,6 +12,98 @@ try {
   data = resolveReusableValidations(resolveTokens(rawData));
 } catch (error) {
   errors.push(error instanceof Error ? error.message : String(error));
+}
+
+function loadConfigWithImports(entryPath) {
+  return loadConfigFile(path.resolve(entryPath), new Set());
+}
+
+function loadConfigFile(filePath, stack) {
+  const normalizedPath = path.resolve(filePath);
+  if (stack.has(normalizedPath)) {
+    throw new Error(`Circular test-data import detected: ${normalizedPath}`);
+  }
+
+  stack.add(normalizedPath);
+
+  const parsed = JSON.parse(
+    fs.readFileSync(normalizedPath, 'utf-8').replace(/^\uFEFF/, '')
+  );
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`Test data file must contain a JSON object: ${normalizedPath}`);
+  }
+
+  let merged = {};
+
+  if (parsed.imports !== undefined) {
+    if (!Array.isArray(parsed.imports)) {
+      throw new Error(`Property "imports" must be an array in ${normalizedPath}`);
+    }
+
+    for (const importPath of parsed.imports) {
+      if (typeof importPath !== 'string') {
+        throw new Error(`All import entries must be strings in ${normalizedPath}`);
+      }
+
+      const childPath = path.resolve(path.dirname(normalizedPath), importPath);
+      merged = mergeConfigObjects(merged, loadConfigFile(childPath, stack));
+    }
+  }
+
+  const { imports: _imports, ...currentConfig } = parsed;
+  merged = mergeConfigObjects(merged, currentConfig);
+
+  stack.delete(normalizedPath);
+  return merged;
+}
+
+function mergeConfigObjects(base, incoming) {
+  const result = cloneConfig(base);
+
+  for (const [key, incomingValue] of Object.entries(incoming)) {
+    if (key === 'imports') continue;
+
+    if (key === 'testCases' || key === 'pages') {
+      const baseItems = Array.isArray(result[key]) ? result[key] : [];
+      const incomingItems = Array.isArray(incomingValue) ? incomingValue : [];
+      result[key] = [...baseItems, ...cloneConfig(incomingItems)];
+      continue;
+    }
+
+    const existingValue = result[key];
+    if (isPlainObject(existingValue) && isPlainObject(incomingValue)) {
+      result[key] = deepMergeObjects(existingValue, incomingValue);
+    } else {
+      result[key] = cloneConfig(incomingValue);
+    }
+  }
+
+  return result;
+}
+
+function deepMergeObjects(base, incoming) {
+  const result = cloneConfig(base);
+
+  for (const [key, incomingValue] of Object.entries(incoming)) {
+    const existingValue = result[key];
+    if (isPlainObject(existingValue) && isPlainObject(incomingValue)) {
+      result[key] = deepMergeObjects(existingValue, incomingValue);
+    } else {
+      result[key] = cloneConfig(incomingValue);
+    }
+  }
+
+  return result;
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function cloneConfig(value) {
+  if (value === undefined) return value;
+  return JSON.parse(JSON.stringify(value));
 }
 
 const locatorStrategies = new Set([

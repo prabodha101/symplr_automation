@@ -2,13 +2,19 @@
 
 This project runs Symplr end-to-end UI tests using a JSON-driven Playwright automation framework.
 
-Instead of writing a new Playwright spec file for every page, screen, or scenario, most test behavior is configured in:
+Instead of writing a new Playwright spec file for every page, screen, or scenario, most test behavior is configured in JSON files under:
+
+```text
+test-data/
+```
+
+The main entry file is:
 
 ```text
 test-data/symplr_pages.json
 ```
 
-The generic Playwright runner reads this JSON file and executes the configured scenarios, actions, validations, downloads, email checks, and end-to-end flows.
+That file is intentionally small. It imports smaller configuration files for tokens, scenarios, validation templates, validation sets, and test cases. The generic Playwright runner loads and merges those files before executing the configured scenarios, actions, validations, downloads, email checks, and end-to-end flows.
 
 ---
 
@@ -16,19 +22,20 @@ The generic Playwright runner reads this JSON file and executes the configured s
 
 1. [Project Overview](#project-overview)
 2. [Important Files](#important-files)
-3. [Pre-Requisites](#pre-requisites)
-4. [Fresh Clone Setup](#fresh-clone-setup)
-5. [Environment Configuration](#environment-configuration)
-6. [Gmail API Setup](#gmail-api-setup)
-7. [Login Session Handling](#login-session-handling)
-8. [Validate Test Data](#validate-test-data)
-9. [Test Execution Commands](#test-execution-commands)
-10. [Run Tests by Scenario](#run-tests-by-scenario)
-11. [How the Config-Driven Tests Work](#how-the-config-driven-tests-work)
-12. [How to Add a New Test Case](#how-to-add-a-new-test-case)
-13. [Examples](#examples)
-14. [Troubleshooting](#troubleshooting)
-15. [Git Hygiene](#git-hygiene)
+3. [Test Data File Structure](#test-data-file-structure)
+4. [Pre-Requisites](#pre-requisites)
+5. [Fresh Clone Setup](#fresh-clone-setup)
+6. [Environment Configuration](#environment-configuration)
+7. [Gmail API Setup](#gmail-api-setup)
+8. [Login Session Handling](#login-session-handling)
+9. [Validate Test Data](#validate-test-data)
+10. [Test Execution Commands](#test-execution-commands)
+11. [Run Tests by Scenario](#run-tests-by-scenario)
+12. [How the Config-Driven Tests Work](#how-the-config-driven-tests-work)
+13. [How to Add a New Test Case](#how-to-add-a-new-test-case)
+14. [Examples](#examples)
+15. [Troubleshooting](#troubleshooting)
+16. [Git Hygiene](#git-hygiene)
 
 ---
 
@@ -36,11 +43,14 @@ The generic Playwright runner reads this JSON file and executes the configured s
 
 The goal of this framework is to let users add and maintain many UI tests from configuration.
 
-Most changes should be done in:
+Most changes should be done in one of the smaller JSON files under:
 
 ```text
-test-data/symplr_pages.json
+test-data/common/
+test-data/test-cases/
 ```
+
+The root file `test-data/symplr_pages.json` should normally only list imports.
 
 Only update TypeScript code when a completely new framework capability is required, such as a new special action, new integration, or new locator strategy.
 
@@ -49,8 +59,9 @@ High-level execution flow:
 ```text
 Start Playwright Test
   -> Read symplr_pages.json
-  -> Load tokens and defaults
-  -> Load test case
+  -> Load imported JSON files
+  -> Merge tokens, defaults, scenarios, templates, validation sets, and test cases
+  -> Load selected test case
   -> Prepare authenticated browser page
   -> Run scenario or navigate to page
   -> Run before actions
@@ -67,7 +78,13 @@ Start Playwright Test
 
 | File | Purpose |
 |---|---|
-| `test-data/symplr_pages.json` | Main test configuration file. Contains tokens, scenario definitions, validation templates, validation sets, and test cases. |
+| `test-data/symplr_pages.json` | Main entry file. It imports smaller JSON files and keeps the root configuration easy to read. |
+| `test-data/common/defaults.json` | Common default settings such as navigation timeout and soft assertions. |
+| `test-data/common/tokens.json` | Reusable text values, app names, email addresses, template IDs, etc. |
+| `test-data/common/scenario-definitions.json` | Reusable scenario flows such as `prompt`, `figma`, `template`, and `existingApp`. |
+| `test-data/common/validation-templates.json` | Reusable parameterized validation templates. |
+| `test-data/common/validation-sets.json` | Reusable groups of validations, such as `blueprintScreen` and `settingsScreen`. |
+| `test-data/test-cases/*.json` | Feature-specific test case files. New tests should usually be added here. |
 | `schemas/testCases.schema.json` | JSON schema that defines the allowed structure of `symplr_pages.json`. |
 | `tests/data-driven.spec.ts` | Generic Playwright runner that reads the JSON file and executes tests. |
 | `tests/fixtures/app-fixtures.ts` | Custom Playwright fixture that prepares an authenticated browser page before test execution. |
@@ -82,6 +99,76 @@ Start Playwright Test
 | `scripts/gmail-auth.mjs` | Generates or refreshes Gmail OAuth token. |
 | `playwright.config.ts` | Playwright configuration. |
 | `.env.example` | Template for local environment variables. |
+
+---
+
+## Test Data File Structure
+
+The project uses an import-based JSON structure to keep files smaller and easier to maintain.
+
+The main file is:
+
+```text
+test-data/symplr_pages.json
+```
+
+It now works like a table of contents:
+
+```json
+{
+  "$schema": "../schemas/testCases.schema.json",
+  "imports": [
+    "./common/defaults.json",
+    "./common/tokens.json",
+    "./common/scenario-definitions.json",
+    "./common/validation-templates.json",
+    "./common/validation-sets.json",
+    "./test-cases/home.json",
+    "./test-cases/create-app.json",
+    "./test-cases/storyboard-navigation.json",
+    "./test-cases/settings.json",
+    "./test-cases/sharing.json",
+    "./test-cases/email-and-github.json",
+    "./test-cases/build-run.json",
+    "./test-cases/e2e.json"
+  ]
+}
+```
+
+When tests run, the framework loads `symplr_pages.json`, reads each imported file, merges them in order, and then runs the tests exactly as before.
+
+### Current folder structure
+
+```text
+test-data/
+  symplr_pages.json
+  common/
+    defaults.json
+    tokens.json
+    scenario-definitions.json
+    validation-templates.json
+    validation-sets.json
+  test-cases/
+    home.json
+    create-app.json
+    storyboard-navigation.json
+    settings.json
+    sharing.json
+    email-and-github.json
+    build-run.json
+    e2e.json
+```
+
+### Where to make changes
+
+| Need | File to update |
+|---|---|
+| Change common text, app name, email, template ID | `test-data/common/tokens.json` |
+| Change scenario setup flow | `test-data/common/scenario-definitions.json` |
+| Change reusable validation pattern | `test-data/common/validation-templates.json` |
+| Change reusable screen validation group | `test-data/common/validation-sets.json` |
+| Add or maintain normal test cases | One of the files under `test-data/test-cases/` |
+| Add a new test-case file | Create a new file under `test-data/test-cases/` and add it to `imports` in `symplr_pages.json` |
 
 ---
 
@@ -459,7 +546,7 @@ A successful result looks like:
 Test data looks valid: <path>/test-data/symplr_pages.json
 ```
 
-Run this command after every change to `test-data/symplr_pages.json`.
+Run this command after every change to any file under `test-data/`. The validator loads `symplr_pages.json`, follows all imports, merges the configuration, and validates the final result.
 
 ---
 
@@ -605,7 +692,7 @@ These scripts are available in `package.json`:
 | `npm run test:ui` | Opens Playwright UI mode. |
 | `npm run report` | Opens the HTML test report. |
 | `npm run install:browsers` | Installs Playwright browsers. |
-| `npm run validate:data` | Validates `test-data/symplr_pages.json`. |
+| `npm run validate:data` | Loads `test-data/symplr_pages.json`, follows imports, merges the config, and validates the final test data. |
 | `npm run gmail:auth` | Generates or refreshes Gmail OAuth token file. |
 | `npm run test:scenario -- <scenario>` | Runs only test cases matching a scenario. |
 
@@ -613,7 +700,7 @@ These scripts are available in `package.json`:
 
 ## How the Config-Driven Tests Work
 
-The main test data file is:
+The main test data entry file is:
 
 ```text
 test-data/symplr_pages.json
@@ -625,7 +712,19 @@ The generic runner is:
 tests/data-driven.spec.ts
 ```
 
-The JSON file supports:
+The runner performs this process:
+
+```text
+1. Read test-data/symplr_pages.json.
+2. Load each file listed in imports.
+3. Merge imported files into one in-memory configuration.
+4. Resolve tokens such as ${tokens.appName}.
+5. Expand validation sets and validation templates.
+6. Register enabled test cases.
+7. Execute the selected tests.
+```
+
+The imported JSON files support:
 
 - `defaults` for common settings
 - `tokens` for reusable values
@@ -661,7 +760,7 @@ Each test case chooses a scenario by name:
 }
 ```
 
-The actual steps for `existingApp` live in the top-level `scenarioDefinitions` section of `test-data/symplr_pages.json`.
+The actual steps for `existingApp` live in `test-data/common/scenario-definitions.json`.
 
 Example:
 
@@ -836,15 +935,32 @@ Use named actions when a workflow needs page-object logic, popup handling, Gmail
 
 ## How to Add a New Test Case
 
-Most new test cases should be added in:
+Most new test cases should be added in one of the files under:
 
 ```text
-test-data/symplr_pages.json
+test-data/test-cases/
 ```
+
+Choose the file that matches the feature area. For example:
+
+| Test type | Suggested file |
+|---|---|
+| Home/dashboard tests | `test-data/test-cases/home.json` |
+| Create app tests | `test-data/test-cases/create-app.json` |
+| Blueprint, Pages, Themes, Variables navigation tests | `test-data/test-cases/storyboard-navigation.json` |
+| Settings tests | `test-data/test-cases/settings.json` |
+| Share app tests | `test-data/test-cases/sharing.json` |
+| Email/GitHub tests | `test-data/test-cases/email-and-github.json` |
+| Build and Run tests | `test-data/test-cases/build-run.json` |
+| End-to-end composed tests | `test-data/test-cases/e2e.json` |
 
 ### Step 1: Add or Reuse Tokens
 
-If the same text is used many times, add it under `tokens`.
+If the same text is used many times, add it under `tokens` in:
+
+```text
+test-data/common/tokens.json
+```
 
 Example:
 
@@ -880,7 +996,7 @@ Useful examples:
 
 ### Step 3: Add the Test Case
 
-Add a new object inside the `testCases` array.
+Add a new object inside the `testCases` array in the correct feature file.
 
 Example:
 
@@ -916,13 +1032,48 @@ Example:
 }
 ```
 
-### Step 4: Validate the JSON
+### Step 4: Add a New Test-Case File if Needed
+
+If none of the existing files is a good place for the new test, create a new file.
+
+Example:
+
+```text
+test-data/test-cases/reports.json
+```
+
+The file should contain:
+
+```json
+{
+  "testCases": [
+    {
+      "name": "Open Reports screen from dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "validations": []
+    }
+  ]
+}
+```
+
+Then add the file to `imports` in `test-data/symplr_pages.json`:
+
+```json
+"./test-cases/reports.json"
+```
+
+### Step 5: Validate the JSON
 
 ```bash
 npm run validate:data
 ```
 
-### Step 5: Run the New Test
+### Step 6: Run the New Test
 
 ```bash
 npx playwright test tests/data-driven.spec.ts -g "Open Reports screen from storyboard" --headed
@@ -1158,10 +1309,10 @@ schemas/testCases.schema.json
 
 Do not add normal test cases into this file.
 
-Add normal test cases into:
+Add normal test cases into an appropriate file under:
 
 ```text
-test-data/symplr_pages.json
+test-data/test-cases/
 ```
 
 Update the schema only when the framework supports a new type of configuration, such as:
