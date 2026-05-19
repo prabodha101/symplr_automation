@@ -7,6 +7,14 @@
     "$schema": {
       "type": "string"
     },
+    "imports": {
+      "type": "array",
+      "description": "Optional list of JSON files to import and merge into this file. Paths are relative to the file that declares the import. Imported testCases are appended in order; shared objects such as tokens, scenarioDefinitions, validationTemplates, and validationSets are merged.",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
     "defaults": {
       "type": "object",
       "additionalProperties": false,

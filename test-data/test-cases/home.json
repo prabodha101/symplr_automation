@@ -1,0 +1,60 @@
+{
+  "testCases": [
+    {
+      "name": "Home page loads correctly",
+      "enabled": true,
+      "path": "/",
+      "pageAssertions": [
+        {
+          "type": "titleContains",
+          "expected": "${tokens.homePageTitle}"
+        },
+        {
+          "type": "urlContains",
+          "expected": "${tokens.dashboardUrlSegment}"
+        }
+      ],
+      "validations": [
+        {
+          "$template": "headingIsVisibleByText",
+          "params": {
+            "text": "${tokens.buildAppsHeading}",
+            "level": 1
+          }
+        },
+        {
+          "$template": "textIsVisible",
+          "params": {
+            "text": "${tokens.speedText}"
+          }
+        },
+        {
+          "$template": "buttonIsVisible",
+          "params": {
+            "name": "${tokens.importFromFigmaButton}"
+          }
+        },
+        {
+          "$template": "buttonIsVisible",
+          "params": {
+            "name": "${tokens.startBuildingButton}"
+          }
+        },
+        {
+          "$template": "assertElementByRole",
+          "params": {
+            "role": "button",
+            "name": "${tokens.startBuildingButton}",
+            "assertion": "disabled"
+          }
+        },
+        {
+          "$template": "textIsVisible",
+          "params": {
+            "text": "${tokens.createFromTemplateText}"
+          }
+        }
+      ]
+    }
+  ]
+}

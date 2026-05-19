@@ -1,0 +1,469 @@
+{
+  "testCases": [
+    {
+      "name": "Open Settings screen from dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Settings\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "settingsScreen"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Assets",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Assets",
+                "nth": 1
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Launcher Icon"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Details",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Details",
+                "nth": 1
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Advance Settings"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Security",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Simulation Detection checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 0,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Screen Capture Detection checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 1,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Root Device Detection checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 2,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Jailbreak Device Detection checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 3,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "validateElementStateByLocator",
+              "params": {
+                "name": "Disable Native Console Logging checkbox",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 4,
+                "assertion": "unchecked"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Security",
+                "nth": 1
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Simulation Detection"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Simulation Detection helps protect your app by identifying if it’s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Screen Capture Detection"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Screen Capture helps safeguard sensitive content in your app by detecting and preventing screenshots or screen recordings, protecting user privacy and data."
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Root Device Detection"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Root Device Detection helps protect your app by detecting if it’s running on a rooted device, reducing the risk of data breaches and unauthorized access."
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Jailbreak Device Detection"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Jailbreak Device Detection helps protect your app by identifying if it's running on a jailbroken device, which can expose it to security threats and unauthorized access."
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Disable Native Console Logging"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device’s console, helping protect against data leaks and improving overall app security."
+              }
+            }
+          ],
+          "pageActions": [
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 0
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Simulation Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 0
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 0
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Simulation Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 0
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 1
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Screen Capture Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 1
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 1
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Screen Capture Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 1
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 2
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Root Device Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 2
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 2
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Root Device Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 2
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 3
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Jailbreak Device Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 3
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 3
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Jailbreak Device Detection checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 3
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 4
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Disable Native Console Logging checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 4
+                    },
+                    "assertion": "checked"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "locator": {
+                "strategy": "locator",
+                "locator": "input[type=\"checkbox\"]",
+                "nth": 4
+              },
+              "validations": [
+                {
+                  "$template": "validateElementState",
+                  "params": {
+                    "name": "Disable Native Console Logging checkbox",
+                    "locator": {
+                      "strategy": "locator",
+                      "locator": "input[type=\"checkbox\"]",
+                      "nth": 4
+                    },
+                    "assertion": "unchecked"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Bar & Nav Bar",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Bar & Nav Bar",
+                "nth": 1
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "App Bar"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "App Access",
+            "exact": true,
+            "first": true
+          },
+          "validations": [
+            {
+              "$template": "buttonIsVisible",
+              "params": {
+                "name": "Invite Members"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

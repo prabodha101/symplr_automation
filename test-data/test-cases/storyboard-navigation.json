@@ -1,0 +1,352 @@
+{
+  "testCases": [
+    {
+      "name": "Open Blueprint screen from dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "blueprintScreen"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "downloadAppDefinition",
+          "name": "Download and validate appDefinition JSON file",
+          "expectedExtension": ".json",
+          "validateJson": true,
+          "minBytes": 1
+        }
+      ]
+    },
+    {
+      "name": "Open Pages screen from dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Pages\"]"
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "pagesScreen"
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "first page preview screen",
+            "locator": "#PreviewScreen-main"
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "first element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "Welcome Back text element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"ASText-949871\")",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "mobileNumber element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"mobileNumber\")",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "Forget your password element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Forgot_Password_\")",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "Don't have an account element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Don_t_have_an_account_\")",
+            "first": true
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "Register element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Register\")",
+            "first": true
+          }
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "#PreviewScreen-main"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"ASText-949871\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"mobileNumber\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Forgot_Password_\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Don_t_have_an_account_\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"Register\")"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Generic Flow: Open Pages screen from dashboard and validate",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Pages\"]"
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "pagesScreen"
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "first page preview screen",
+            "locator": "#PreviewScreen-main"
+          }
+        },
+        {
+          "$template": "elementIsVisibleByLocator",
+          "params": {
+            "name": "first element in the first screen",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator",
+            "first": true
+          }
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "#PreviewScreen-main"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Width"
+              }
+            },
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Height"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Open Themes screen from dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Themes\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "themesScreen"
+        }
+      ]
+    },
+    {
+      "name": "Open Variables screen from dashboard",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Variables\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "variablesScreen"
+        }
+      ]
+    }
+  ]
+}

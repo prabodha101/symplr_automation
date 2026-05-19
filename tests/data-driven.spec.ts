@@ -8,7 +8,7 @@ import { waitForGmailEmail } from "../integrations/email/GmailInbox";
 import { downloadZipFromEmailLink } from "../integrations/email/GmailDownloadLink";
 
 const dataPath = path.resolve(__dirname, "../test-data/symplr_pages.json");
-const rawTestData = JSON.parse(fs.readFileSync(dataPath, "utf-8")) as unknown;
+const rawTestData = loadConfigWithImports(dataPath);
 const testData = resolveReusableValidations(
   resolveTokens(rawTestData),
 ) as TestData;
@@ -192,12 +192,118 @@ type TestData = {
     navigationTimeout?: number;
     softAssertions?: boolean;
   };
+  imports?: string[];
   tokens?: Record<string, string>;
   validationSets?: Record<string, ValidationConfig | ValidationConfig[]>;
   validationTemplates?: Record<string, ValidationTemplateDefinition>;
   scenarioDefinitions?: Record<string, ScenarioDefinition>;
   testCases: PageCase[];
 };
+
+function loadConfigWithImports(entryPath: string): unknown {
+  return loadConfigFile(path.resolve(entryPath), new Set<string>());
+}
+
+function loadConfigFile(absolutePath: string, stack: Set<string>): Record<string, unknown> {
+  const normalizedPath = path.resolve(absolutePath);
+  if (stack.has(normalizedPath)) {
+    throw new Error(`Circular test-data import detected: ${normalizedPath}`);
+  }
+
+  stack.add(normalizedPath);
+
+  const parsed = JSON.parse(
+    fs.readFileSync(normalizedPath, "utf-8").replace(/^\uFEFF/, ""),
+  ) as unknown;
+
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`Test data file must contain a JSON object: ${normalizedPath}`);
+  }
+
+  const config = parsed as Record<string, unknown>;
+  let merged: Record<string, unknown> = {};
+
+  if (config.imports !== undefined) {
+    if (!Array.isArray(config.imports)) {
+      throw new Error(`Property "imports" must be an array in ${normalizedPath}`);
+    }
+
+    for (const importPath of config.imports) {
+      if (typeof importPath !== "string") {
+        throw new Error(`All import entries must be strings in ${normalizedPath}`);
+      }
+
+      const childPath = path.resolve(path.dirname(normalizedPath), importPath);
+      merged = mergeConfigObjects(merged, loadConfigFile(childPath, stack));
+    }
+  }
+
+  const { imports: _imports, ...currentConfig } = config;
+  merged = mergeConfigObjects(merged, currentConfig);
+
+  stack.delete(normalizedPath);
+  return merged;
+}
+
+function mergeConfigObjects(
+  base: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = cloneConfig(base) as Record<string, unknown>;
+
+  for (const [key, incomingValue] of Object.entries(incoming)) {
+    if (key === "imports") continue;
+
+    if (key === "testCases" || key === "pages") {
+      const baseItems = Array.isArray(result[key]) ? (result[key] as unknown[]) : [];
+      const incomingItems = Array.isArray(incomingValue) ? incomingValue : [];
+      result[key] = [...baseItems, ...cloneConfig(incomingItems)];
+      continue;
+    }
+
+    const existingValue = result[key];
+    if (isPlainObject(existingValue) && isPlainObject(incomingValue)) {
+      result[key] = deepMergeObjects(
+        existingValue as Record<string, unknown>,
+        incomingValue as Record<string, unknown>,
+      );
+    } else {
+      result[key] = cloneConfig(incomingValue);
+    }
+  }
+
+  return result;
+}
+
+function deepMergeObjects(
+  base: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = cloneConfig(base) as Record<string, unknown>;
+
+  for (const [key, incomingValue] of Object.entries(incoming)) {
+    const existingValue = result[key];
+    if (isPlainObject(existingValue) && isPlainObject(incomingValue)) {
+      result[key] = deepMergeObjects(
+        existingValue as Record<string, unknown>,
+        incomingValue as Record<string, unknown>,
+      );
+    } else {
+      result[key] = cloneConfig(incomingValue);
+    }
+  }
+
+  return result;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function cloneConfig<T>(value: T): T {
+  if (value === undefined) return value;
+  return JSON.parse(JSON.stringify(value)) as T;
+}
 
 type RunContext = {
   /** Original storyboard/dashboard page created by the fixture. */

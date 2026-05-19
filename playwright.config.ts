@@ -34,7 +34,14 @@ export default defineConfig({
     {
       name: 'chromium',
       testIgnore: /.*\.setup\.ts/,
-      use: { ...devices['Desktop Chrome'] }
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            "--disable-blink-features=AutomationControlled",
+          ],
+        }
+      }
     }
 
     // Uncomment these when you want wider browser coverage.

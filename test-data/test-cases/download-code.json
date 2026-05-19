@@ -1,0 +1,39 @@
+{
+  "testCases": [
+    {
+      "name": "Validate that code can be sent by email from Developer Options",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "downloadCodeFromEmail",
+          "name": "Click Download and validate code ZIP from email",
+          "expectedEmailSubject": "Download Code",
+          "timeout": 180000,
+          "pollIntervalMs": 5000,
+          "expectedExtension": ".zip",
+          "minBytes": 1
+        }
+      ]
+    }
+  ]
+}
