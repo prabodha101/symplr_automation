@@ -314,13 +314,71 @@
       ],
       "pageActions": [
         {
-          "type": "connectToGitHub",
-          "name": "Connect to GitHub",
+          "type": "click",
+          "name": "Open Developer Tools menu",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[aria-label=\"Download App Definition\"] + button"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Developer Tools"
+              }
+            },
+            {
+              "$template": "buttonIsVisible",
+              "params": {
+                "name": "Push"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "name": "Click Push from Developer Tools",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Push",
+            "exact": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Repository Name",
+                "timeout": 30000
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "name": "Continue GitHub code push",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Continue",
+            "exact": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Code Push Started",
+                "timeout": 70000
+              }
+            }
+          ]
+        },
+        {
+          "type": "connectToGitHubEmail",
+          "name": "Validate GitHub push email is received",
           "expectedEmailSubject": "Push Code Github",
-          "timeout": 300000,
-          "pollIntervalMs": 5000,
-          "expectedExtension": ".zip",
-          "minBytes": 1
+          "timeout": 180000,
+          "pollIntervalMs": 5000
         }
       ]
     }

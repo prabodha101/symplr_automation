@@ -66,8 +66,8 @@ type ActionConfig = {
   | "selectOption"
   | "download"
   | "downloadAppDefinition"
-  | "downloadCodeFromEmail"
-  | "connectToGitHub"
+  | "downloadCodeEmail"
+  | "connectToGitHubEmail"
   | "fillEmailCodeAndSubmit"
   | "conditional"
   | "buildAndRunApp"
@@ -1494,17 +1494,15 @@ async function runAction(
         );
       await runDownloadAppDefinitionAction(context.mainPage, action, testInfo);
       return;
-    case "downloadCodeFromEmail":
+    case "downloadCodeEmail":
       if (!testInfo)
         throw new Error(
-          "downloadCodeFromEmail action requires Playwright testInfo.",
+          "downloadCodeEmail action requires Playwright testInfo.",
         );
-      await runDownloadCodeFromEmailAction(context.mainPage, action, testInfo);
+      await runDownloadCodeEmailAction(context, action, testInfo);
       return;
-    case "connectToGitHub":
-      if (!testInfo)
-        throw new Error("connectToGitHub action requires Playwright testInfo.");
-      await runPushCodeToGitHubAction(context.mainPage, action, testInfo);
+    case "connectToGitHubEmail":
+      await runConnectToGitHubEmailAction(action);
       return;
     case "fillEmailCodeAndSubmit":
       await runFillEmailCodeAndSubmitAction(context, action);
@@ -1650,8 +1648,8 @@ async function runDownloadAppDefinitionAction(
   validateDownloadedFile(downloadedFilePath, suggestedFilename, action);
 }
 
-async function runDownloadCodeFromEmailAction(
-  page: Page,
+async function runDownloadCodeEmailAction(
+  context: RunContext,
   action: ActionConfig,
   testInfo: TestInfo,
 ): Promise<void> {
@@ -1661,16 +1659,14 @@ async function runDownloadCodeFromEmailAction(
 
   if (!emailTo) {
     throw new Error(
-      'downloadCodeFromEmail requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
+      'downloadCodeEmail requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
     );
   }
 
-  const storyboardPage = new ProjectStoryBoardPage(page);
-
-  // Gmail search uses second-level timestamps. Subtract a few seconds so we do
-  // not miss an email that arrives immediately after the button click.
+  // The UI click that triggers the email is configured in JSON before this action.
+  // Gmail search uses second-level timestamps, so subtract a few seconds to avoid
+  // missing an email that arrives immediately after the previous action.
   const sentAt = new Date(Date.now() - 10_000);
-  await storyboardPage.downloadCode();
 
   const email = await waitForGmailEmail({
     from: emailFrom,
@@ -1692,7 +1688,7 @@ async function runDownloadCodeFromEmailAction(
     email,
     zipFilePath,
     {
-      request: page.context().request,
+      request: context.activePage.context().request,
       timeoutMs: action.timeout ?? 180_000,
     },
   );
@@ -1708,43 +1704,40 @@ async function runDownloadCodeFromEmailAction(
     contentType: "application/zip",
   });
 
+  console.log(`Received download code email with subject: ${email.subject}`);
   console.log(`Downloaded ZIP from email link: ${downloadUrl}`);
   console.log(`Saved ZIP file to: ${savedFilePath}`);
 }
 
-async function runPushCodeToGitHubAction(
-  page: Page,
+async function runConnectToGitHubEmailAction(
   action: ActionConfig,
-  testInfo: TestInfo,
 ): Promise<void> {
-  const expectedEmailSubject = action.expectedEmailSubject ?? "Download Code";
+  const expectedEmailSubject = action.expectedEmailSubject ?? "Push Code Github";
   const emailTo = action.emailTo ?? process.env.GOOGLE_EMAIL;
   const emailFrom = action.emailFrom ?? process.env.EMAIL_SENDER;
 
   if (!emailTo) {
     throw new Error(
-      'pushToGitHub requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
+      'connectToGitHubEmail requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
     );
   }
 
-  const storyboardPage = new ProjectStoryBoardPage(page);
-
   // Gmail search uses second-level timestamps. Subtract a few seconds so we do
-  // not miss an email that arrives immediately after the button click.
+  // not miss an email that arrives immediately before this validation action runs.
   const sentAt = new Date(Date.now() - 10_000);
 
-  await storyboardPage.connectToGithub();
-
   const email = await waitForGmailEmail({
-    from: process.env.EMAIL_SENDER,
-    to: process.env.GOOGLE_EMAIL,
-    subjectContains: "Push Code Github",
+    from: emailFrom,
+    to: emailTo,
+    subjectContains: expectedEmailSubject,
+    bodyContains: action.emailBodyContains,
     after: sentAt,
-    timeoutMs: 180_000,
-    pollIntervalMs: 5_000,
+    timeoutMs: action.timeout ?? 180_000,
+    pollIntervalMs: action.pollIntervalMs ?? 5_000,
   });
 
-  expect(email.subject).toContain("Push Code Github");
+  expect(email.subject).toContain(expectedEmailSubject);
+  console.log(`Received GitHub email with subject: ${email.subject}`);
 }
 
 

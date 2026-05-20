@@ -43,18 +43,6 @@ export class ProjectStoryBoardPage {
     return downloadedFilePath;
   }
 
-  async openDeveloperToolsMenu(): Promise<void> {
-    await expect(this.downloadAppDefinitionButton).toBeVisible();
-
-    const parent = this.downloadAppDefinitionButton.locator('..');
-    const parentContainer = parent.locator('..');
-    const developerToolsMenuButton = parentContainer.locator(':scope > button').first();
-
-    await expect(developerToolsMenuButton).toBeVisible();
-    await developerToolsMenuButton.click();
-    await expect(this.page.getByText('Developer Tools')).toBeVisible();
-  }
-
   async openBuildMenu(): Promise<void> {
     await expect(this.downloadAppDefinitionButton).toBeVisible();
 
@@ -65,15 +53,6 @@ export class ProjectStoryBoardPage {
     await expect(buildMenuButton).toBeVisible();
     await buildMenuButton.click();
     await expect(this.page.getByText('Build & Run App')).toBeVisible();
-  }
-
-  async downloadCode(): Promise<void> {
-    //await this.openBlueprint();
-    await this.openDeveloperToolsMenu();
-
-    const downloadButton = this.page.getByRole('button', { name: 'Download' });
-    await expect(downloadButton).toBeVisible();
-    await downloadButton.click();
   }
 
   async buildAndRunApp(): Promise<Page> {
@@ -127,31 +106,4 @@ export class ProjectStoryBoardPage {
     return previewPage;
   }
 
-  async connectToGithub(): Promise<void> {
-    //await this.openBlueprint();
-    await this.openDeveloperToolsMenu();
-
-    const pushButton = this.page.getByRole('button', { name: 'Push' });
-    await expect(pushButton).toBeVisible();
-    await pushButton.click();
-
-    await expect(this.page.getByText('Repository Name')).toBeVisible();
-    await this.page.getByRole('button', { name: 'Continue' }).click();
-    //await expect(this.page.getByText('Code Push Started')).toBeVisible({ timeout: 2 * 60 * 1000 });
-    await this.continueAndWaitForCodePushResult();
-  }
-
-  async continueAndWaitForCodePushResult(): Promise<void> {
-    const successPopup = this.page.getByText('Code Push Started', { exact: true });
-    const failurePopup = this.page.getByText('Code Push Failed', { exact: true });
-
-    const result = await Promise.race([
-      successPopup.waitFor({ state: 'visible', timeout: 70_000 }).then(() => 'success' as const),
-      failurePopup.waitFor({ state: 'visible', timeout: 70_000 }).then(() => 'failure' as const),
-    ]);
-
-    if (result === 'failure') {
-      throw new Error('Code push to GitHub failed: "Code Push Failed" popup was displayed.');
-    }
-  }
 }

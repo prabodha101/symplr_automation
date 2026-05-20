@@ -1006,8 +1006,8 @@ It also supports Symplr-specific named actions:
 
 ```text
 downloadAppDefinition
-downloadCodeFromEmail
-connectToGitHub
+downloadCodeEmail
+connectToGitHubEmail
 fillEmailCodeAndSubmit
 conditional
 buildAndRunApp
@@ -1019,6 +1019,10 @@ switchToRunPage
 ```
 
 Use named actions when a workflow needs page-object logic, popup handling, Gmail polling, ZIP validation, branching, or other app-specific behavior.
+
+`downloadCodeEmail` only validates the download-code email and ZIP file. It does not open Developer Tools or click **Download**. Those UI steps should be configured in JSON using normal `click` actions and validations.
+
+`connectToGitHubEmail` only validates the GitHub push email. It does not click Developer Tools, Push, Continue, or any other UI element. Those UI steps should be configured in JSON using normal `click` actions and validations.
 
 The `conditional` action is used when the application can follow more than one valid path. For example, GitHub may sometimes ask for an email verification code and sometimes connect directly. The condition checks whether a configured element appears within a timeout, then runs the matching branch.
 
@@ -1266,28 +1270,148 @@ npx playwright test tests/data-driven.spec.ts -g "Create app using template" --h
 
 ### Example 6: Validate Code ZIP from Email
 
+Use normal JSON `click` actions to open Developer Tools and click **Download**. Then use `downloadCodeEmail` only for the email/ZIP validation.
+
+```json
+[
+  {
+    "type": "click",
+    "name": "Open Developer Tools menu",
+    "locator": {
+      "strategy": "locator",
+      "locator": "div[aria-label=\"Download App Definition\"] + button"
+    },
+    "validations": [
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "Developer Tools"
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Download"
+        }
+      }
+    ]
+  },
+  {
+    "type": "click",
+    "name": "Click Download from Developer Tools",
+    "locator": {
+      "strategy": "role",
+      "role": "button",
+      "name": "Download",
+      "exact": true
+    }
+  },
+  {
+    "type": "downloadCodeEmail",
+    "name": "Validate download code email and ZIP file",
+    "expectedEmailSubject": "Download Code",
+    "timeout": 180000,
+    "pollIntervalMs": 5000,
+    "expectedExtension": ".zip",
+    "minBytes": 1
+  }
+]
+```
+
+The `downloadCodeEmail` action:
+
+1. Polls Gmail for the expected email.
+2. Validates that the email subject contains the configured `expectedEmailSubject`.
+3. Optionally validates the email body when `emailBodyContains` is configured.
+4. Extracts the ZIP download link from the email body.
+5. Downloads the ZIP file.
+6. Validates that the file exists and looks like a ZIP archive.
+7. Attaches the ZIP to the Playwright report.
+
+### Example 7: Validate GitHub Push Email Only
+
+Use `connectToGitHubEmail` after the JSON-configured UI actions have already opened Developer Tools, clicked **Push**, and submitted the GitHub push dialog.
+
+The UI steps stay in JSON:
+
 ```json
 {
-  "type": "downloadCodeFromEmail",
-  "name": "Click Download and validate code ZIP from email",
-  "expectedEmailSubject": "Download Code",
-  "timeout": 180000,
-  "pollIntervalMs": 5000,
-  "expectedExtension": ".zip",
-  "minBytes": 1
+  "type": "click",
+  "name": "Open Developer Tools menu",
+  "locator": {
+    "strategy": "locator",
+    "locator": "div[aria-label=\"Download App Definition\"] + button"
+  },
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Developer Tools"
+      }
+    },
+    {
+      "$template": "buttonIsVisible",
+      "params": {
+        "name": "Push"
+      }
+    }
+  ]
+},
+{
+  "type": "click",
+  "name": "Click Push from Developer Tools",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "Push",
+    "exact": true
+  },
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Repository Name",
+        "timeout": 30000
+      }
+    }
+  ]
+},
+{
+  "type": "click",
+  "name": "Continue GitHub code push",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "Continue",
+    "exact": true
+  },
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Code Push Started",
+        "timeout": 70000
+      }
+    }
+  ]
 }
 ```
 
-This action:
+Then the email-only action waits for the expected email:
 
-1. Clicks the Symplr Download option using the page object.
-2. Polls Gmail for the expected email.
-3. Extracts the ZIP download link.
-4. Downloads the ZIP file.
-5. Validates that the file exists and looks like a ZIP archive.
-6. Attaches the ZIP to the Playwright report.
+```json
+{
+  "type": "connectToGitHubEmail",
+  "name": "Validate GitHub push email is received",
+  "expectedEmailSubject": "Push Code Github",
+  "timeout": 180000,
+  "pollIntervalMs": 5000
+}
+```
 
-### Example 7: Fill an Email Verification Code and Submit
+This action only reads Gmail and validates that the expected email was received.
+
+### Example 8: Fill an Email Verification Code and Submit
 
 Use `fillEmailCodeAndSubmit` when a UI action sends an email that contains a verification code.
 
@@ -1335,7 +1459,7 @@ This action:
 
 `role: "input"` is supported as a convenience alias for common HTML inputs such as `input[name="otp"]`, `input[id="otp"]`, `input[aria-label="otp"]`, and similar textarea attributes.
 
-### Example 8: Build and Run Page Validation
+### Example 9: Build and Run Page Validation
 
 ```json
 {
@@ -1368,7 +1492,7 @@ Normal JSON-driven validations and actions then run against that run page until 
 }
 ```
 
-### Example 9: Validate an Element Inside an Iframe
+### Example 10: Validate an Element Inside an Iframe
 
 Some app-run content is rendered inside an iframe.
 
@@ -1394,7 +1518,7 @@ To validate an element inside that iframe, add `frameLocator`:
 
 The runner first enters the iframe, then finds the normal locator inside it.
 
-### Example 10: Validate After an Action
+### Example 11: Validate After an Action
 
 Use `postValidations` when you want to validate something immediately after a page action finishes.
 
@@ -1513,7 +1637,7 @@ npx playwright test tests/data-driven.spec.ts -g "User Registration" --headed
 
 This test starts clean, opens the app URL, and then executes the configured registration actions from JSON.
 
-### Example 12: Conditional Action for Optional GitHub Verification
+### Example 13: Conditional Action for Optional GitHub Verification
 
 Use `conditional` when the application may show one screen in some runs and skip that screen in other runs.
 
