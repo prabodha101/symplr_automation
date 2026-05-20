@@ -43,18 +43,6 @@ export class ProjectStoryBoardPage {
     return downloadedFilePath;
   }
 
-  async openDeveloperToolsMenu(): Promise<void> {
-    await expect(this.downloadAppDefinitionButton).toBeVisible();
-
-    const parent = this.downloadAppDefinitionButton.locator('..');
-    const parentContainer = parent.locator('..');
-    const developerToolsMenuButton = parentContainer.locator(':scope > button').first();
-
-    await expect(developerToolsMenuButton).toBeVisible();
-    await developerToolsMenuButton.click();
-    await expect(this.page.getByText('Developer Tools')).toBeVisible();
-  }
-
   async openBuildMenu(): Promise<void> {
     await expect(this.downloadAppDefinitionButton).toBeVisible();
 
@@ -65,15 +53,6 @@ export class ProjectStoryBoardPage {
     await expect(buildMenuButton).toBeVisible();
     await buildMenuButton.click();
     await expect(this.page.getByText('Build & Run App')).toBeVisible();
-  }
-
-  async downloadCode(): Promise<void> {
-    //await this.openBlueprint();
-    await this.openDeveloperToolsMenu();
-
-    const downloadButton = this.page.getByRole('button', { name: 'Download' });
-    await expect(downloadButton).toBeVisible();
-    await downloadButton.click();
   }
 
   async buildAndRunApp(): Promise<Page> {

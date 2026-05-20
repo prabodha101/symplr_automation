@@ -79,7 +79,7 @@
             {
               "$template": "buttonIsVisible",
               "params": {
-                "name": "Invite Members"
+                "name": "Share app"
               }
             },
             {

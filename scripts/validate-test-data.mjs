@@ -133,7 +133,7 @@ const actions = new Set([
   'selectOption',
   'download',
   'downloadAppDefinition',
-  'downloadCodeFromEmail',
+  'downloadCodeEmail',
   'connectToGitHubEmail',
   'fillEmailCodeAndSubmit',
   'conditional',

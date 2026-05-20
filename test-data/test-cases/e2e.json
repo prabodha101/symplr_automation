@@ -36,6 +36,7 @@
         "Open Themes screen from dashboard",
         "Open Variables screen from dashboard",
         "Open Settings screen from dashboard",
+        "Share an app with an existing user",
         "Validate that code can be sent by email from Developer Options",
         "Validate that code can be pushed to GitHub from Developer Options",
         "Validate that the app can be built and run from the dashboard",
@@ -77,6 +78,7 @@
         "Open Themes screen from dashboard",
         "Open Variables screen from dashboard",
         "Open Settings screen from dashboard",
+        "Share an app with an existing user",
         "Validate that code can be sent by email from Developer Options",
         "Generic Flow: Validate that the app can be built and run from the dashboard",
         "Generate a QR code to run the app on a real device on build page"

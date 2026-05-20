@@ -91,7 +91,8 @@
     "buttonIsVisible": {
       "defaults": {
         "timeout": 5000,
-        "first": false
+        "first": false,
+        "exact": true
       },
       "template": {
         "name": "Validate '${param.name}' button is visible",
@@ -99,7 +100,7 @@
           "strategy": "role",
           "role": "button",
           "name": "${param.name}",
-          "exact": true,
+          "exact": "${param.exact}",
           "first": "${params.first}"
         },
         "assertions": [
@@ -151,6 +152,7 @@
       "defaults": {
         "timeout": 5000,
         "first": false,
+        "exact": false,
         "frameLocator": ""
       },
       "template": {
@@ -159,7 +161,8 @@
           "strategy": "locator",
           "locator": "${param.locator}",
           "first": "${params.first}",
-          "frameLocator": "${param.frameLocator}"
+          "frameLocator": "${param.frameLocator}",
+          "exact": "${params.exact}"
         },
         "assertions": [
           {

@@ -1006,7 +1006,7 @@ It also supports Symplr-specific named actions:
 
 ```text
 downloadAppDefinition
-downloadCodeFromEmail
+downloadCodeEmail
 connectToGitHubEmail
 fillEmailCodeAndSubmit
 conditional
@@ -1019,6 +1019,8 @@ switchToRunPage
 ```
 
 Use named actions when a workflow needs page-object logic, popup handling, Gmail polling, ZIP validation, branching, or other app-specific behavior.
+
+`downloadCodeEmail` only validates the download-code email and ZIP file. It does not open Developer Tools or click **Download**. Those UI steps should be configured in JSON using normal `click` actions and validations.
 
 `connectToGitHubEmail` only validates the GitHub push email. It does not click Developer Tools, Push, Continue, or any other UI element. Those UI steps should be configured in JSON using normal `click` actions and validations.
 
@@ -1268,26 +1270,63 @@ npx playwright test tests/data-driven.spec.ts -g "Create app using template" --h
 
 ### Example 6: Validate Code ZIP from Email
 
+Use normal JSON `click` actions to open Developer Tools and click **Download**. Then use `downloadCodeEmail` only for the email/ZIP validation.
+
 ```json
-{
-  "type": "downloadCodeFromEmail",
-  "name": "Click Download and validate code ZIP from email",
-  "expectedEmailSubject": "Download Code",
-  "timeout": 180000,
-  "pollIntervalMs": 5000,
-  "expectedExtension": ".zip",
-  "minBytes": 1
-}
+[
+  {
+    "type": "click",
+    "name": "Open Developer Tools menu",
+    "locator": {
+      "strategy": "locator",
+      "locator": "div[aria-label=\"Download App Definition\"] + button"
+    },
+    "validations": [
+      {
+        "$template": "textIsVisible",
+        "params": {
+          "text": "Developer Tools"
+        }
+      },
+      {
+        "$template": "buttonIsVisible",
+        "params": {
+          "name": "Download"
+        }
+      }
+    ]
+  },
+  {
+    "type": "click",
+    "name": "Click Download from Developer Tools",
+    "locator": {
+      "strategy": "role",
+      "role": "button",
+      "name": "Download",
+      "exact": true
+    }
+  },
+  {
+    "type": "downloadCodeEmail",
+    "name": "Validate download code email and ZIP file",
+    "expectedEmailSubject": "Download Code",
+    "timeout": 180000,
+    "pollIntervalMs": 5000,
+    "expectedExtension": ".zip",
+    "minBytes": 1
+  }
+]
 ```
 
-This action:
+The `downloadCodeEmail` action:
 
-1. Clicks the Symplr Download option using the page object.
-2. Polls Gmail for the expected email.
-3. Extracts the ZIP download link.
-4. Downloads the ZIP file.
-5. Validates that the file exists and looks like a ZIP archive.
-6. Attaches the ZIP to the Playwright report.
+1. Polls Gmail for the expected email.
+2. Validates that the email subject contains the configured `expectedEmailSubject`.
+3. Optionally validates the email body when `emailBodyContains` is configured.
+4. Extracts the ZIP download link from the email body.
+5. Downloads the ZIP file.
+6. Validates that the file exists and looks like a ZIP archive.
+7. Attaches the ZIP to the Playwright report.
 
 ### Example 7: Validate GitHub Push Email Only
 

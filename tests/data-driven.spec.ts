@@ -66,7 +66,7 @@ type ActionConfig = {
   | "selectOption"
   | "download"
   | "downloadAppDefinition"
-  | "downloadCodeFromEmail"
+  | "downloadCodeEmail"
   | "connectToGitHubEmail"
   | "fillEmailCodeAndSubmit"
   | "conditional"
@@ -1494,12 +1494,12 @@ async function runAction(
         );
       await runDownloadAppDefinitionAction(context.mainPage, action, testInfo);
       return;
-    case "downloadCodeFromEmail":
+    case "downloadCodeEmail":
       if (!testInfo)
         throw new Error(
-          "downloadCodeFromEmail action requires Playwright testInfo.",
+          "downloadCodeEmail action requires Playwright testInfo.",
         );
-      await runDownloadCodeFromEmailAction(context.mainPage, action, testInfo);
+      await runDownloadCodeEmailAction(context, action, testInfo);
       return;
     case "connectToGitHubEmail":
       await runConnectToGitHubEmailAction(action);
@@ -1648,8 +1648,8 @@ async function runDownloadAppDefinitionAction(
   validateDownloadedFile(downloadedFilePath, suggestedFilename, action);
 }
 
-async function runDownloadCodeFromEmailAction(
-  page: Page,
+async function runDownloadCodeEmailAction(
+  context: RunContext,
   action: ActionConfig,
   testInfo: TestInfo,
 ): Promise<void> {
@@ -1659,16 +1659,14 @@ async function runDownloadCodeFromEmailAction(
 
   if (!emailTo) {
     throw new Error(
-      'downloadCodeFromEmail requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
+      'downloadCodeEmail requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
     );
   }
 
-  const storyboardPage = new ProjectStoryBoardPage(page);
-
-  // Gmail search uses second-level timestamps. Subtract a few seconds so we do
-  // not miss an email that arrives immediately after the button click.
+  // The UI click that triggers the email is configured in JSON before this action.
+  // Gmail search uses second-level timestamps, so subtract a few seconds to avoid
+  // missing an email that arrives immediately after the previous action.
   const sentAt = new Date(Date.now() - 10_000);
-  await storyboardPage.downloadCode();
 
   const email = await waitForGmailEmail({
     from: emailFrom,
@@ -1690,7 +1688,7 @@ async function runDownloadCodeFromEmailAction(
     email,
     zipFilePath,
     {
-      request: page.context().request,
+      request: context.activePage.context().request,
       timeoutMs: action.timeout ?? 180_000,
     },
   );
@@ -1706,6 +1704,7 @@ async function runDownloadCodeFromEmailAction(
     contentType: "application/zip",
   });
 
+  console.log(`Received download code email with subject: ${email.subject}`);
   console.log(`Downloaded ZIP from email link: ${downloadUrl}`);
   console.log(`Saved ZIP file to: ${savedFilePath}`);
 }
