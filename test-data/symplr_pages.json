@@ -7,11 +7,13 @@
     "./common/validation-templates.json",
     "./common/validation-sets.json",
     "./test-cases/home.json",
+    "./test-cases/registration.json",
     "./test-cases/create-app.json",
     "./test-cases/storyboard-navigation.json",
     "./test-cases/settings.json",
     "./test-cases/sharing.json",
     "./test-cases/download-code.json",
+    "./test-cases/connect-to-figma.json",
     "./test-cases/connect-to-github.json",
     "./test-cases/build-run.json",
     "./test-cases/e2e.json"

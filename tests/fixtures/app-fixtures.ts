@@ -1,16 +1,15 @@
-import { test as base, expect, type Locator, type Page} from '@playwright/test';
-import { getAuthenticatedPage } from '../utils/auth-session';
+import { test as base, expect, type Locator, type Page } from '@playwright/test';
+import { getPageForAuthMode, type AuthPageOptions } from '../utils/auth-session';
 
 type AppFixtures = {
-  isPromptScenario: boolean;
+  auth: AuthPageOptions;
 };
 
 export const test = base.extend<AppFixtures>({
-  // Default value is false
-  // isPromptScenario: [false, { option: true }],
+  auth: [{ session: 'authenticated' }, { option: true }],
 
-  page: [async ({ browser }, use) => {
-    const { context, page } = await getAuthenticatedPage(browser);
+  page: [async ({ browser, auth }, use) => {
+    const { context, page } = await getPageForAuthMode(browser, auth);
 
     await use(page);
 
@@ -19,4 +18,4 @@ export const test = base.extend<AppFixtures>({
 });
 
 export { expect };
-export { Locator, Page };
+export { Locator, Page, AuthPageOptions };

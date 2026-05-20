@@ -156,7 +156,7 @@
             "strategy": "locator",
             "locator": "div[data-template-id=\"${tokens.templateId}\"]",
             "exact": true,
-            "nth": 0
+            "nth": 1
           }
         },
         {

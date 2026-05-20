@@ -3,7 +3,7 @@ import { env } from 'node:process';
 import { AppRunPage } from './AppRunPage';
 
 export class ProjectStoryBoardPage {
-  constructor(private readonly page: Page) {}
+  constructor(private readonly page: Page) { }
 
   get homeButton() {
     return this.page.getByRole('button', { name: 'Home' });
@@ -16,12 +16,12 @@ export class ProjectStoryBoardPage {
   }
 
   async waitForLoaded(timeout = 5 * 60 * 1000): Promise<void> {
-      console.log('  >> Waiting for Project Storyboard page to load...');
-      await this.page.waitForURL(
-          /\/dashboard\/projects\?appId=[0-9a-fA-F-]+$/,
-          { timeout }
-      );
-      await expect(this.homeButton).toBeVisible();
+    console.log('  >> Waiting for Project Storyboard page to load...');
+    await this.page.waitForURL(
+      /\/dashboard\/projects\?appId=[0-9a-fA-F-]+$/,
+      { timeout }
+    );
+    await expect(this.homeButton).toBeVisible();
   }
 
   async waitForAppDefinitionAvailable(timeout = 3 * 60 * 1000): Promise<void> {
@@ -122,9 +122,9 @@ export class ProjectStoryBoardPage {
       )
       .toBe(true);
 
-      const appRunPage = new AppRunPage(previewPage);
-      await appRunPage.waitForBuildComplete();
-      return previewPage;
+    const appRunPage = new AppRunPage(previewPage);
+    await appRunPage.waitForBuildComplete();
+    return previewPage;
   }
 
   async connectToGithub(): Promise<void> {
@@ -135,7 +135,7 @@ export class ProjectStoryBoardPage {
     await expect(pushButton).toBeVisible();
     await pushButton.click();
 
-    await expect(this.page.getByText('Push Code to GitHub')).toBeVisible();
+    await expect(this.page.getByText('Repository Name')).toBeVisible();
     await this.page.getByRole('button', { name: 'Continue' }).click();
     //await expect(this.page.getByText('Code Push Started')).toBeVisible({ timeout: 2 * 60 * 1000 });
     await this.continueAndWaitForCodePushResult();

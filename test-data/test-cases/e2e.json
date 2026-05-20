@@ -1,6 +1,29 @@
 {
   "testCases": [
     {
+      "name": "Fresh Account: End to End scenario test",
+      "enabled": true,
+      "auth": {
+        "session": "none",
+        "clearStorageState": true,
+        "navigateToApp": true
+      },
+      "includeTestCases": [
+        "User Registration",
+        "Create app using template",
+        "Fresh Account (With OTP): Validate that code can be pushed to GitHub from Developer Options",
+        "Open Blueprint screen from dashboard",
+        "Open Pages screen from dashboard",
+        "Open Themes screen from dashboard",
+        "Open Variables screen from dashboard",
+        "Open Settings screen from dashboard",
+        "Validate that code can be sent by email from Developer Options",
+        "Validate that code can be pushed to GitHub from Developer Options",
+        "Validate that the app can be built and run from the dashboard",
+        "Generate a QR code to run the app on a real device on build page"
+      ]
+    },
+    {
       "name": "End to End scenario test using existing app",
       "enabled": true,
       "scenario": "existingApp",
