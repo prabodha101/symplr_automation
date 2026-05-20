@@ -127,31 +127,4 @@ export class ProjectStoryBoardPage {
     return previewPage;
   }
 
-  async connectToGithub(): Promise<void> {
-    //await this.openBlueprint();
-    await this.openDeveloperToolsMenu();
-
-    const pushButton = this.page.getByRole('button', { name: 'Push' });
-    await expect(pushButton).toBeVisible();
-    await pushButton.click();
-
-    await expect(this.page.getByText('Repository Name')).toBeVisible();
-    await this.page.getByRole('button', { name: 'Continue' }).click();
-    //await expect(this.page.getByText('Code Push Started')).toBeVisible({ timeout: 2 * 60 * 1000 });
-    await this.continueAndWaitForCodePushResult();
-  }
-
-  async continueAndWaitForCodePushResult(): Promise<void> {
-    const successPopup = this.page.getByText('Code Push Started', { exact: true });
-    const failurePopup = this.page.getByText('Code Push Failed', { exact: true });
-
-    const result = await Promise.race([
-      successPopup.waitFor({ state: 'visible', timeout: 70_000 }).then(() => 'success' as const),
-      failurePopup.waitFor({ state: 'visible', timeout: 70_000 }).then(() => 'failure' as const),
-    ]);
-
-    if (result === 'failure') {
-      throw new Error('Code push to GitHub failed: "Code Push Failed" popup was displayed.');
-    }
-  }
 }

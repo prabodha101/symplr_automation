@@ -1007,7 +1007,7 @@ It also supports Symplr-specific named actions:
 ```text
 downloadAppDefinition
 downloadCodeFromEmail
-connectToGitHub
+connectToGitHubEmail
 fillEmailCodeAndSubmit
 conditional
 buildAndRunApp
@@ -1019,6 +1019,8 @@ switchToRunPage
 ```
 
 Use named actions when a workflow needs page-object logic, popup handling, Gmail polling, ZIP validation, branching, or other app-specific behavior.
+
+`connectToGitHubEmail` only validates the GitHub push email. It does not click Developer Tools, Push, Continue, or any other UI element. Those UI steps should be configured in JSON using normal `click` actions and validations.
 
 The `conditional` action is used when the application can follow more than one valid path. For example, GitHub may sometimes ask for an email verification code and sometimes connect directly. The condition checks whether a configured element appears within a timeout, then runs the matching branch.
 
@@ -1287,7 +1289,90 @@ This action:
 5. Validates that the file exists and looks like a ZIP archive.
 6. Attaches the ZIP to the Playwright report.
 
-### Example 7: Fill an Email Verification Code and Submit
+### Example 7: Validate GitHub Push Email Only
+
+Use `connectToGitHubEmail` after the JSON-configured UI actions have already opened Developer Tools, clicked **Push**, and submitted the GitHub push dialog.
+
+The UI steps stay in JSON:
+
+```json
+{
+  "type": "click",
+  "name": "Open Developer Tools menu",
+  "locator": {
+    "strategy": "locator",
+    "locator": "div[aria-label=\"Download App Definition\"] + button"
+  },
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Developer Tools"
+      }
+    },
+    {
+      "$template": "buttonIsVisible",
+      "params": {
+        "name": "Push"
+      }
+    }
+  ]
+},
+{
+  "type": "click",
+  "name": "Click Push from Developer Tools",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "Push",
+    "exact": true
+  },
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Repository Name",
+        "timeout": 30000
+      }
+    }
+  ]
+},
+{
+  "type": "click",
+  "name": "Continue GitHub code push",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "Continue",
+    "exact": true
+  },
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Code Push Started",
+        "timeout": 70000
+      }
+    }
+  ]
+}
+```
+
+Then the email-only action waits for the expected email:
+
+```json
+{
+  "type": "connectToGitHubEmail",
+  "name": "Validate GitHub push email is received",
+  "expectedEmailSubject": "Push Code Github",
+  "timeout": 180000,
+  "pollIntervalMs": 5000
+}
+```
+
+This action only reads Gmail and validates that the expected email was received.
+
+### Example 8: Fill an Email Verification Code and Submit
 
 Use `fillEmailCodeAndSubmit` when a UI action sends an email that contains a verification code.
 
@@ -1335,7 +1420,7 @@ This action:
 
 `role: "input"` is supported as a convenience alias for common HTML inputs such as `input[name="otp"]`, `input[id="otp"]`, `input[aria-label="otp"]`, and similar textarea attributes.
 
-### Example 8: Build and Run Page Validation
+### Example 9: Build and Run Page Validation
 
 ```json
 {
@@ -1368,7 +1453,7 @@ Normal JSON-driven validations and actions then run against that run page until 
 }
 ```
 
-### Example 9: Validate an Element Inside an Iframe
+### Example 10: Validate an Element Inside an Iframe
 
 Some app-run content is rendered inside an iframe.
 
@@ -1394,7 +1479,7 @@ To validate an element inside that iframe, add `frameLocator`:
 
 The runner first enters the iframe, then finds the normal locator inside it.
 
-### Example 10: Validate After an Action
+### Example 11: Validate After an Action
 
 Use `postValidations` when you want to validate something immediately after a page action finishes.
 
@@ -1513,7 +1598,7 @@ npx playwright test tests/data-driven.spec.ts -g "User Registration" --headed
 
 This test starts clean, opens the app URL, and then executes the configured registration actions from JSON.
 
-### Example 12: Conditional Action for Optional GitHub Verification
+### Example 13: Conditional Action for Optional GitHub Verification
 
 Use `conditional` when the application may show one screen in some runs and skip that screen in other runs.
 

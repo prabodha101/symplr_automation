@@ -134,7 +134,7 @@ const actions = new Set([
   'download',
   'downloadAppDefinition',
   'downloadCodeFromEmail',
-  'connectToGitHub',
+  'connectToGitHubEmail',
   'fillEmailCodeAndSubmit',
   'conditional',
   'buildAndRunApp',
