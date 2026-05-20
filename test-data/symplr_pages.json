@@ -13,6 +13,7 @@
     "./test-cases/settings.json",
     "./test-cases/sharing.json",
     "./test-cases/download-code.json",
+    "./test-cases/connect-to-figma.json",
     "./test-cases/connect-to-github.json",
     "./test-cases/build-run.json",
     "./test-cases/e2e.json"

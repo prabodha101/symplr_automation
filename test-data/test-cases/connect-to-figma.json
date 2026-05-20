@@ -1,0 +1,75 @@
+{
+    "testCases": [
+        {
+            "name": "Fresh Account: Connect to Figma",
+            "enabled": true,
+            "beforeValidateActions": [
+                {
+                    "type": "click",
+                    "name": "Open Import from Figma dialog",
+                    "locator": {
+                        "strategy": "role",
+                        "role": "button",
+                        "name": "${tokens.importFromFigmaButton}",
+                        "exact": true
+                    },
+                    "validations": [
+                        {
+                            "$template": "textIsVisible",
+                            "params": {
+                                "text": "Connect to Figma"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "click",
+                    "name": "Click 'Continue' button",
+                    "locator": {
+                        "strategy": "role",
+                        "role": "button",
+                        "name": "Continue",
+                        "exact": true
+                    },
+                    "validations": [
+                        {
+                            "$template": "buttonIsVisible",
+                            "params": {
+                                "name": "Allow access"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "click",
+                    "name": "Click 'Allow access' button",
+                    "locator": {
+                        "strategy": "role",
+                        "role": "button",
+                        "name": "Allow access",
+                        "exact": true
+                    }
+                }
+            ],
+            "validations": [
+                {
+                    "$template": "textIsVisible",
+                    "params": {
+                        "text": "Import from Figma",
+                        "timeout": 60000
+                    }
+                }
+            ],
+            "pageActions": [
+                {
+                    "type": "click",
+                    "name": "Close the import figma modal",
+                    "locator": {
+                        "strategy": "locator",
+                        "locator": "div.Icon.css-1szd5f0"
+                    }
+                }
+            ]
+        }
+    ]
+}

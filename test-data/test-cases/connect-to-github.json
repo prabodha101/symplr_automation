@@ -220,47 +220,70 @@
             "strategy": "locator",
             "locator": "div[data-email=\"${tokens.symplrUserEmail}\"]"
           },
-          "validations": [
-            {
-              "$template": "textIsVisible",
-              "params": {
-                "text": "Device verification",
-                "timeout": 30000
-              }
-            }
-          ]
+          "name": "Choose GitHub account"
         },
         {
-          "type": "fillEmailCodeAndSubmit",
-          "name": "Read GitHub device verification code from email and verify",
-          "expectedEmailSubject": "[GitHub] Please verify your device",
-          "emailTo": "${tokens.symplrUserEmail}",
-          "emailBodyContains": "Verification code:",
-          "codePrefix": "Verification code:",
-          "codeRegex": "Verification code:\\s*([A-Za-z0-9][A-Za-z0-9 _-]{2,30})",
-          "timeout": 180000,
-          "pollIntervalMs": 5000,
-          "locator": {
-            "strategy": "role",
-            "role": "input",
-            "name": "otp",
-            "exact": true
-          }
-        },
-        {
-          "type": "click",
-          "locator": {
-            "strategy": "role",
-            "role": "button",
-            "name": "Authorize Symplr-io"
+          "type": "conditional",
+          "name": "Handle optional GitHub device verification",
+          "condition": {
+            "locator": {
+              "strategy": "text",
+              "text": "Device verification",
+              "exact": true
+            },
+            "assertion": "visible",
+            "timeout": 15000
           },
-          "validations": [
+          "thenActions": [
             {
-              "$template": "buttonIsVisible",
-              "params": {
-                "name": "Share",
-                "timeout": 30000
+              "type": "fillEmailCodeAndSubmit",
+              "name": "Read GitHub device verification code from email and verify",
+              "expectedEmailSubject": "[GitHub] Please verify your device",
+              "emailTo": "${tokens.symplrUserEmail}",
+              "emailBodyContains": "Verification code:",
+              "codePrefix": "Verification code:",
+              "codeRegex": "Verification code:\\s*([A-Za-z0-9][A-Za-z0-9 _-]{2,30})",
+              "timeout": 180000,
+              "pollIntervalMs": 5000,
+              "locator": {
+                "strategy": "role",
+                "role": "input",
+                "name": "otp",
+                "exact": true
+              },
+              "verifyButtonLocator": {
+                "strategy": "role",
+                "role": "button",
+                "name": "Verify",
+                "exact": true
               }
+            },
+            {
+              "type": "click",
+              "name": "Authorize Symplr after GitHub device verification",
+              "locator": {
+                "strategy": "role",
+                "role": "button",
+                "name": "Authorize Symplr-io"
+              },
+              "validations": [
+                {
+                  "$template": "buttonIsVisible",
+                  "params": {
+                    "name": "Share",
+                    "timeout": 30000
+                  }
+                }
+              ]
+            }
+          ],
+          "elseActions": [
+            {
+              "validations": [
+                {
+                  "$ref": "appDefinitionValidation"
+                }
+              ]
             }
           ]
         }

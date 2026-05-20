@@ -136,6 +136,7 @@ const actions = new Set([
   'downloadCodeFromEmail',
   'connectToGitHub',
   'fillEmailCodeAndSubmit',
+  'conditional',
   'buildAndRunApp',
   'waitForBuildComplete',
   'openRunOnDeviceModal',
@@ -143,6 +144,8 @@ const actions = new Set([
   'switchToMainPage',
   'switchToRunPage',
 ]);
+const conditionalAssertions = new Set(['visible', 'hidden', 'attached']);
+
 const includeSections = new Set([
   'beforeValidateActions',
   'pageAssertions',
@@ -219,8 +222,15 @@ for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
   const prefix = `testCases[${pageIndex}] (${pageCase?.name ?? 'unnamed'})`;
   if (!pageCase?.name) errors.push(`${prefix}: missing name.`);
   const usesUnauthenticatedPage = pageCase?.auth?.session === 'none';
-  if (!pageCase?.path && !pageCase?.url && !pageCase?.scenario && !usesUnauthenticatedPage) {
-    errors.push(`${prefix}: provide path, url, scenario, or auth.session="none".`);
+  const hasConfiguredSteps =
+    hasItems(pageCase?.beforeValidateActions) ||
+    hasItems(pageCase?.pageAssertions) ||
+    hasItems(pageCase?.validations) ||
+    hasItems(pageCase?.pageActions) ||
+    hasItems(pageCase?.includeTestCases) ||
+    hasItems(pageCase?.prerequisiteTestCases);
+  if (!pageCase?.path && !pageCase?.url && !pageCase?.scenario && !usesUnauthenticatedPage && !hasConfiguredSteps) {
+    errors.push(`${prefix}: provide path, url, scenario, auth.session="none", or executable configured steps.`);
   }
   if (pageCase?.auth !== undefined) {
     validateAuthOptions(`${prefix}.auth`, pageCase.auth);
@@ -514,11 +524,44 @@ function validateLocator(prefix, locator) {
   }
 }
 
-function validateAction(prefix, action) {
-  if (!action || !actions.has(action.type)) {
-    errors.push(`${prefix}: unsupported action "${action?.type}".`);
+function validateActionCondition(prefix, condition) {
+  if (!condition || typeof condition !== 'object' || Array.isArray(condition)) {
+    errors.push(`${prefix}: conditional action requires a condition object.`);
     return;
   }
+
+  validateLocator(`${prefix}.locator`, condition.locator);
+
+  if (condition.assertion !== undefined && !conditionalAssertions.has(condition.assertion)) {
+    errors.push(`${prefix}.assertion: must be one of visible, hidden, or attached.`);
+  }
+
+  if (condition.timeout !== undefined && typeof condition.timeout !== 'number') {
+    errors.push(`${prefix}.timeout: must be a number.`);
+  }
+}
+
+function validateAction(prefix, action) {
+  if (!action || typeof action !== 'object') {
+    errors.push(`${prefix}: action must be an object.`);
+    return;
+  }
+
+  const hasValidationOnlyContent =
+    hasItems(action.validations) ||
+    hasItems(action.postValidations) ||
+    hasItems(action.pageActions);
+
+  if (action.type === undefined) {
+    if (!hasValidationOnlyContent) {
+      errors.push(`${prefix}: action requires a supported type, or validations/postValidations/pageActions for a validation-only action block.`);
+      return;
+    }
+  } else if (!actions.has(action.type)) {
+    errors.push(`${prefix}: unsupported action "${action.type}".`);
+    return;
+  }
+
   if (['fill', 'press', 'selectOption'].includes(action.type) && action.value === undefined) {
     errors.push(`${prefix}: action "${action.type}" requires value.`);
   }
@@ -599,6 +642,34 @@ function validateAction(prefix, action) {
     if (!action.verifyButtonLocator) {
       errors.push(`${prefix}: fillEmailCodeAndSubmit action requires verifyButtonLocator.`);
     }
+  }
+
+  if (action.type === 'conditional') {
+    validateActionCondition(`${prefix}.condition`, action.condition);
+    const hasConditionalBranch =
+      hasItems(action.thenActions) ||
+      hasItems(action.elseActions) ||
+      hasItems(action.thenValidations) ||
+      hasItems(action.elseValidations);
+    if (!hasConditionalBranch) {
+      errors.push(`${prefix}: conditional action requires at least one of thenActions, elseActions, thenValidations, or elseValidations. Prefer thenActions/elseActions for new configs.`);
+    }
+  }
+
+  for (const [actionIndex, nestedAction] of (action.thenActions ?? []).entries()) {
+    validateAction(`${prefix}.thenActions[${actionIndex}]`, nestedAction);
+  }
+
+  for (const [actionIndex, nestedAction] of (action.elseActions ?? []).entries()) {
+    validateAction(`${prefix}.elseActions[${actionIndex}]`, nestedAction);
+  }
+
+  for (const [validationIndex, validation] of (action.thenValidations ?? []).entries()) {
+    validateValidation(`${prefix}.thenValidations[${validationIndex}]`, validation);
+  }
+
+  for (const [validationIndex, validation] of (action.elseValidations ?? []).entries()) {
+    validateValidation(`${prefix}.elseValidations[${validationIndex}]`, validation);
   }
 
   for (const [validationIndex, validation] of (action.validations ?? []).entries()) {
@@ -726,6 +797,22 @@ function resolveActionReusableItems(action, validationSets, validationTemplates)
     resolvedAction.pageActions = resolvedAction.pageActions.map((nestedAction) =>
       resolveActionReusableItems(nestedAction, validationSets, validationTemplates)
     );
+  }
+  if (Array.isArray(resolvedAction.thenActions)) {
+    resolvedAction.thenActions = resolvedAction.thenActions.map((nestedAction) =>
+      resolveActionReusableItems(nestedAction, validationSets, validationTemplates)
+    );
+  }
+  if (Array.isArray(resolvedAction.elseActions)) {
+    resolvedAction.elseActions = resolvedAction.elseActions.map((nestedAction) =>
+      resolveActionReusableItems(nestedAction, validationSets, validationTemplates)
+    );
+  }
+  if (Array.isArray(resolvedAction.thenValidations)) {
+    resolvedAction.thenValidations = resolveValidationItems(resolvedAction.thenValidations, validationSets, validationTemplates);
+  }
+  if (Array.isArray(resolvedAction.elseValidations)) {
+    resolvedAction.elseValidations = resolveValidationItems(resolvedAction.elseValidations, validationSets, validationTemplates);
   }
   return resolvedAction;
 }

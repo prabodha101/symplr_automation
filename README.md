@@ -1009,6 +1009,7 @@ downloadAppDefinition
 downloadCodeFromEmail
 connectToGitHub
 fillEmailCodeAndSubmit
+conditional
 buildAndRunApp
 waitForBuildComplete
 openRunOnDeviceModal
@@ -1017,7 +1018,9 @@ switchToMainPage
 switchToRunPage
 ```
 
-Use named actions when a workflow needs page-object logic, popup handling, Gmail polling, ZIP validation, or other app-specific behavior.
+Use named actions when a workflow needs page-object logic, popup handling, Gmail polling, ZIP validation, branching, or other app-specific behavior.
+
+The `conditional` action is used when the application can follow more than one valid path. For example, GitHub may sometimes ask for an email verification code and sometimes connect directly. The condition checks whether a configured element appears within a timeout, then runs the matching branch.
 
 ---
 
@@ -1509,6 +1512,79 @@ npx playwright test tests/data-driven.spec.ts -g "User Registration" --headed
 ```
 
 This test starts clean, opens the app URL, and then executes the configured registration actions from JSON.
+
+### Example 12: Conditional Action for Optional GitHub Verification
+
+Use `conditional` when the application may show one screen in some runs and skip that screen in other runs.
+
+Example use case:
+
+```text
+GitHub connection flow
+  -> Sometimes shows Device verification screen
+  -> Sometimes connects directly without OTP
+```
+
+The config can handle both paths:
+
+```json
+{
+  "type": "conditional",
+  "name": "Handle optional GitHub device verification",
+  "condition": {
+    "locator": {
+      "strategy": "text",
+      "text": "Device verification",
+      "exact": true
+    },
+    "assertion": "visible",
+    "timeout": 15000
+  },
+  "thenActions": [
+    {
+      "type": "fillEmailCodeAndSubmit",
+      "name": "Read GitHub device verification code from email and verify",
+      "expectedEmailSubject": "[GitHub] Please verify your device",
+      "emailTo": "${tokens.symplrUserEmail}",
+      "emailBodyContains": "Verification code:",
+      "codePrefix": "Verification code:",
+      "locator": {
+        "strategy": "role",
+        "role": "input",
+        "name": "otp",
+        "exact": true
+      },
+      "verifyButtonLocator": {
+        "strategy": "role",
+        "role": "button",
+        "name": "Verify",
+        "exact": true
+      }
+    }
+  ],
+  "elseActions": [
+    {
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Execution behavior:
+
+```text
+If "Device verification" appears within 15 seconds:
+  run thenActions, such as reading the code from email and verifying it
+
+If "Device verification" does not appear within 15 seconds:
+  run elseActions. In this example the else action only contains validations, so it validates that the app is already back on the Blueprint page.
+```
+
+This avoids failing the test when both application paths are valid. Prefer `thenActions` and `elseActions` for new conditional flows. Each branch action can run a normal action, or it can be a validation-only block with a `validations` array.
 
 ---
 

@@ -47,8 +47,16 @@ type LocatorConfig = {
   frameLocator?: string;
 };
 
+type ActionConditionConfig = {
+  locator: LocatorConfig;
+  /** Assertion used to decide which branch runs. Default is visible. */
+  assertion?: "visible" | "hidden" | "attached";
+  timeout?: number | string;
+};
+
 type ActionConfig = {
-  type:
+  /** Optional for validation-only action blocks used inside conditional branches. */
+  type?:
   | "click"
   | "fill"
   | "check"
@@ -61,6 +69,7 @@ type ActionConfig = {
   | "downloadCodeFromEmail"
   | "connectToGitHub"
   | "fillEmailCodeAndSubmit"
+  | "conditional"
   | "buildAndRunApp"
   | "waitForBuildComplete"
   | "openRunOnDeviceModal"
@@ -89,6 +98,12 @@ type ActionConfig = {
   codeRegex?: string;
   codeRegexFlags?: string;
   verifyButtonLocator?: LocatorConfig;
+  /** Branching action support. Prefer thenActions/elseActions. thenValidations/elseValidations remain for backward compatibility. */
+  condition?: ActionConditionConfig;
+  thenActions?: ActionConfig[];
+  elseActions?: ActionConfig[];
+  thenValidations?: ValidationConfig[];
+  elseValidations?: ValidationConfig[];
   /** Retry the action when its action-level validations fail. Useful for UI clicks that sometimes need another click after the app finishes loading. */
   retryOnValidationFailure?: boolean;
   retryAttempts?: number;
@@ -523,6 +538,42 @@ function resolveActionReusableItems(
     );
   }
 
+  if (Array.isArray(actionObj.thenActions)) {
+    actionObj.thenActions = actionObj.thenActions.map((nestedAction) =>
+      resolveActionReusableItems(
+        nestedAction,
+        validationSets,
+        validationTemplates,
+      ),
+    );
+  }
+
+  if (Array.isArray(actionObj.elseActions)) {
+    actionObj.elseActions = actionObj.elseActions.map((nestedAction) =>
+      resolveActionReusableItems(
+        nestedAction,
+        validationSets,
+        validationTemplates,
+      ),
+    );
+  }
+
+  if (Array.isArray(actionObj.thenValidations)) {
+    actionObj.thenValidations = resolveValidationItems(
+      actionObj.thenValidations,
+      validationSets,
+      validationTemplates,
+    );
+  }
+
+  if (Array.isArray(actionObj.elseValidations)) {
+    actionObj.elseValidations = resolveValidationItems(
+      actionObj.elseValidations,
+      validationSets,
+      validationTemplates,
+    );
+  }
+
   return actionObj;
 }
 
@@ -708,7 +759,7 @@ function getTemplateParam(
 
   for (const part of pathParts) {
     if (current === null || typeof current !== "object" || !(part in current)) {
-      throw new Error(`Template parameter not found: ${key}`);
+      throw new Error(`Template parameter not found: ${key}. Please check if the given template parameter '${key}' is correct.`);
     }
     current = (current as Record<string, unknown>)[part];
   }
@@ -1004,7 +1055,7 @@ async function runConfiguredTestCaseSections(
   if (hasIncludedSection(sections, "beforeValidateActions")) {
     for (const action of pageCase.beforeValidateActions ?? []) {
       await test.step(` >> before validation action: ${action.name ?? action.type}`, async () => {
-        await runAction(context, action, undefined, testInfo);
+        await runAction(context, action, undefined, testInfo, pageCase);
       });
     }
   }
@@ -1104,7 +1155,7 @@ async function runValidations(
       const locator = buildLocator(context.activePage, validation.locator);
 
       for (const action of validation.actions ?? []) {
-        await runAction(context, action, locator, testInfo);
+        await runAction(context, action, locator, testInfo, pageCase);
       }
 
       for (const assertion of validation.assertions) {
@@ -1125,9 +1176,10 @@ async function runPageActions(
       ...(action.validations ?? []),
       ...(action.postValidations ?? []),
     ];
+    const actionLabel = action.name ?? action.type ?? "validation-only action";
 
     if (action.retryOnValidationFailure && postActionValidations.length > 0) {
-      await test.step(` >> Page action with validation retry: ${action.name ?? action.type}`, async () => {
+      await test.step(` >> Page action with validation retry: ${actionLabel}`, async () => {
         await runActionWithValidationRetry(
           context,
           pageCase,
@@ -1137,8 +1189,8 @@ async function runPageActions(
         );
       });
     } else {
-      await test.step(` >> Page action: ${action.name ?? action.type}`, async () => {
-        await runAction(context, action, undefined, testInfo);
+      await test.step(` >> Page action: ${actionLabel}`, async () => {
+        await runAction(context, action, undefined, testInfo, pageCase);
       });
 
       await runValidations(context, pageCase, postActionValidations, testInfo);
@@ -1162,10 +1214,10 @@ async function runActionWithValidationRetry(
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       console.log(
-        ` >> Action attempt ${attempt}/${attempts}: ${action.name ?? action.type}`,
+        ` >> Action attempt ${attempt}/${attempts}: ${action.name ?? action.type ?? "validation-only action"}`,
       );
 
-      await runAction(context, action, undefined, testInfo);
+      await runAction(context, action, undefined, testInfo, pageCase);
       await runValidations(context, pageCase, postActionValidations, testInfo);
       return;
     } catch (error) {
@@ -1174,7 +1226,7 @@ async function runActionWithValidationRetry(
       if (attempt >= attempts) {
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(
-          `Action "${action.name ?? action.type}" did not pass its post-action validations after ${attempts} attempt(s). Last error: ${message}`,
+          `Action "${action.name ?? action.type ?? "validation-only action"}" did not pass its post-action validations after ${attempts} attempt(s). Last error: ${message}`,
         );
       }
 
@@ -1378,10 +1430,18 @@ async function runAction(
   action: ActionConfig,
   defaultLocator?: Locator,
   testInfo?: TestInfo,
+  pageCase?: PageCase,
 ): Promise<void> {
   const locator = action.locator
     ? buildLocator(context.activePage, action.locator)
     : defaultLocator;
+
+  if (!action.type) {
+    // Allows lightweight branch items such as:
+    // { "validations": [{ "$ref": "appDefinitionValidation" }] }
+    // The validations are executed by runPageActions after this no-op action.
+    return;
+  }
 
   switch (action.type) {
     case "click":
@@ -1449,6 +1509,13 @@ async function runAction(
     case "fillEmailCodeAndSubmit":
       await runFillEmailCodeAndSubmitAction(context, action);
       return;
+    case "conditional":
+      if (!testInfo)
+        throw new Error("conditional action requires Playwright testInfo.");
+      if (!pageCase)
+        throw new Error("conditional action requires the current test case context.");
+      await runConditionalAction(context, pageCase, action, testInfo);
+      return;
     case "buildAndRunApp":
       await runBuildAndRunAppAction(context);
       return;
@@ -1478,6 +1545,64 @@ async function runAction(
       const unknown: never = action.type;
       throw new Error(`Unsupported action type: ${unknown}`);
     }
+  }
+}
+
+async function runConditionalAction(
+  context: RunContext,
+  pageCase: PageCase,
+  action: ActionConfig,
+  testInfo: TestInfo,
+): Promise<void> {
+  if (!action.condition) {
+    throw new Error('conditional action requires "condition".');
+  }
+
+  const matched = await evaluateActionCondition(context, action.condition);
+  const branchName = matched ? "then" : "else";
+  console.log(` >> Conditional action "${action.name ?? action.type}" matched ${branchName} branch.`);
+
+  const branchActions = matched ? action.thenActions ?? [] : action.elseActions ?? [];
+  const branchValidations = matched
+    ? action.thenValidations ?? []
+    : action.elseValidations ?? [];
+
+  await test.step(` >> conditional ${branchName} branch: ${action.name ?? action.type}`, async () => {
+    await runPageActions(context, pageCase, branchActions, testInfo);
+    await runValidations(context, pageCase, branchValidations, testInfo);
+  });
+}
+
+async function evaluateActionCondition(
+  context: RunContext,
+  condition: ActionConditionConfig,
+): Promise<boolean> {
+  const timeout = Number(condition.timeout ?? 5_000);
+  const assertion = condition.assertion ?? "visible";
+  const locator = buildLocator(context.activePage, condition.locator);
+
+  try {
+    switch (assertion) {
+      case "visible":
+        await expect(locator).toBeVisible({ timeout });
+        return true;
+      case "hidden":
+        await expect(locator).toBeHidden({ timeout });
+        return true;
+      case "attached":
+        await expect(locator).toBeAttached({ timeout });
+        return true;
+      default: {
+        const unknown: never = assertion;
+        throw new Error(`Unsupported conditional assertion: ${unknown}`);
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(
+      ` >> Conditional assertion "${assertion}" did not match within ${timeout}ms. Running else branch. Details: ${message.split("\n")[0]}`,
+    );
+    return false;
   }
 }
 

@@ -207,6 +207,31 @@
           "required": [
             "prerequisiteTestCases"
           ]
+        },
+        {
+          "required": [
+            "beforeValidateActions"
+          ]
+        },
+        {
+          "required": [
+            "pageActions"
+          ]
+        },
+        {
+          "required": [
+            "validations"
+          ]
+        },
+        {
+          "required": [
+            "pageAssertions"
+          ]
+        },
+        {
+          "required": [
+            "includeTestCases"
+          ]
         }
       ],
       "allOf": [
@@ -796,9 +821,6 @@
     },
     "action": {
       "type": "object",
-      "required": [
-        "type"
-      ],
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -816,6 +838,7 @@
             "downloadCodeFromEmail",
             "connectToGitHub",
             "fillEmailCodeAndSubmit",
+            "conditional",
             "buildAndRunApp",
             "waitForBuildComplete",
             "openRunOnDeviceModal",
@@ -823,7 +846,7 @@
             "switchToMainPage",
             "switchToRunPage"
           ],
-          "description": "Supported configuration-driven action types implemented in tests/data-driven.spec.ts."
+          "description": "Supported configuration-driven action types. Omit type only for validation-only action blocks, for example inside conditional elseActions."
         },
         "value": {
           "type": [
@@ -924,6 +947,38 @@
           "$ref": "#/$defs/locator",
           "description": "Locator for the button clicked after the verification code is filled."
         },
+        "condition": {
+          "$ref": "#/$defs/actionCondition",
+          "description": "Condition used by conditional actions to decide whether to run thenActions or elseActions. thenValidations/elseValidations are deprecated backward-compatible fields."
+        },
+        "thenActions": {
+          "type": "array",
+          "description": "Actions executed when a conditional action condition matches. Can include validation-only blocks.",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "elseActions": {
+          "type": "array",
+          "description": "Actions executed when a conditional action condition does not match. Can include validation-only blocks such as { \"validations\": [{ \"$ref\": \"appDefinitionValidation\" }] }.",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "thenValidations": {
+          "type": "array",
+          "description": "Deprecated. Prefer thenActions with validation-only blocks.",
+          "items": {
+            "$ref": "#/$defs/validationOrReusable"
+          }
+        },
+        "elseValidations": {
+          "type": "array",
+          "description": "Deprecated. Prefer elseActions with validation-only blocks.",
+          "items": {
+            "$ref": "#/$defs/validationOrReusable"
+          }
+        },
         "retryOnValidationFailure": {
           "type": "boolean",
           "description": "When true, reruns this action if its action-level validations/postValidations fail. Useful for flaky UI clicks where the first click may not open the expected modal."
@@ -979,8 +1034,97 @@
               "verifyButtonLocator"
             ]
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "conditional"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "condition"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "thenActions"
+                ]
+              },
+              {
+                "required": [
+                  "thenValidations"
+                ]
+              },
+              {
+                "required": [
+                  "elseActions"
+                ]
+              },
+              {
+                "required": [
+                  "elseValidations"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "required": [
+            "validations"
+          ]
+        },
+        {
+          "required": [
+            "postValidations"
+          ]
+        },
+        {
+          "required": [
+            "pageActions"
+          ]
         }
       ]
+    },
+    "actionCondition": {
+      "type": "object",
+      "required": [
+        "locator"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "locator": {
+          "$ref": "#/$defs/locator"
+        },
+        "assertion": {
+          "type": "string",
+          "enum": [
+            "visible",
+            "hidden",
+            "attached"
+          ],
+          "description": "Condition assertion. Default is visible."
+        },
+        "timeout": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "How long to wait for the condition before using the else branch."
+        }
+      }
     },
     "assertion": {
       "type": "object",
