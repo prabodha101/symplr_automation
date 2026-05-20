@@ -1,10 +1,10 @@
-import { test, expect, type Locator, type Page } from "./fixtures/app-fixtures";
+import { test, expect, type AuthPageOptions, type Locator, type Page } from "./fixtures/app-fixtures";
 import type { FrameLocator, TestInfo } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 import { ProjectStoryBoardPage } from "../pages/ProjectStoryBoardPage";
 import { AppRunPage } from "../pages/AppRunPage";
-import { waitForGmailEmail } from "../integrations/email/GmailInbox";
+import { waitForGmailEmail, type ReceivedGmailEmail } from "../integrations/email/GmailInbox";
 import { downloadZipFromEmailLink } from "../integrations/email/GmailDownloadLink";
 
 const dataPath = path.resolve(__dirname, "../test-data/symplr_pages.json");
@@ -60,6 +60,7 @@ type ActionConfig = {
   | "downloadAppDefinition"
   | "downloadCodeFromEmail"
   | "connectToGitHub"
+  | "fillEmailCodeAndSubmit"
   | "buildAndRunApp"
   | "waitForBuildComplete"
   | "openRunOnDeviceModal"
@@ -84,6 +85,14 @@ type ActionConfig = {
   emailTo?: string;
   emailBodyContains?: string;
   pollIntervalMs?: number;
+  codePrefix?: string;
+  codeRegex?: string;
+  codeRegexFlags?: string;
+  verifyButtonLocator?: LocatorConfig;
+  /** Retry the action when its action-level validations fail. Useful for UI clicks that sometimes need another click after the app finishes loading. */
+  retryOnValidationFailure?: boolean;
+  retryAttempts?: number;
+  retryDelayMs?: number;
 };
 
 type AssertionConfig = {
@@ -173,6 +182,8 @@ type PageCase = {
   name: string;
   scenario?: string; // Possible values: "prompt", "template", "figma", "existingApp".
   scenarioConfig?: Record<string, unknown>; // Parameters passed into the JSON-defined scenario.
+  /** Optional per-test authentication/session behavior. */
+  auth?: AuthPageOptions;
   enabled?: boolean;
   baseUrl?: string;
   path?: string;
@@ -184,6 +195,12 @@ type PageCase = {
   pageAssertions?: AssertionConfig[];
   validations?: ValidationConfig[];
   includeTestCases?: TestCaseInclude[];
+  /**
+   * Full test cases that should run before this test case's own scenario/navigation.
+   * The current test case controls the browser auth/session; prerequisite auth blocks are
+   * not applied because Playwright fixtures are created before the test body starts.
+   */
+  prerequisiteTestCases?: TestCaseInclude[];
 };
 
 type TestData = {
@@ -709,11 +726,22 @@ for (const testCase of testData.testCases.filter(
   (item) => item.enabled !== false,
 )) {
   test.describe(testCase.name, () => {
+    test.use({ auth: testCase.auth ?? { session: "authenticated" } });
+
     test(`validates configured checks for ${testCase.name}`, async ({
       page,
     }, testInfo) => {
       const runContext = createRunContext(page);
       console.log(`>-- Running test case : ${testCase.name}`);
+
+      // Run any full prerequisite test flows first. This is useful for flows
+      // such as registering a fresh user before executing a scenario.
+      await runPrerequisiteTestCases(
+        runContext,
+        testCase,
+        testInfo,
+        [testCase.name],
+      );
 
       // - Execute the scenario from test-data/symplr_pages.json.
       //   The TypeScript runner only knows how to execute generic configured
@@ -739,6 +767,76 @@ for (const testCase of testData.testCases.filter(
       ]);
     });
   });
+}
+
+async function runPrerequisiteTestCases(
+  context: RunContext,
+  pageCase: PageCase,
+  testInfo: TestInfo,
+  includeStack: string[],
+): Promise<void> {
+  for (const prerequisite of pageCase.prerequisiteTestCases ?? []) {
+    const normalizedPrerequisite = normalizeTestCaseInclude(prerequisite);
+    const prerequisiteTestCase = testCaseLookup.get(normalizedPrerequisite.name);
+
+    if (!prerequisiteTestCase) {
+      throw new Error(
+        `Prerequisite test case not found: ${normalizedPrerequisite.name}. Referenced from: ${pageCase.name}`,
+      );
+    }
+
+    if (includeStack.includes(prerequisiteTestCase.name)) {
+      throw new Error(
+        `Circular prerequisiteTestCases reference detected: ${[
+          ...includeStack,
+          prerequisiteTestCase.name,
+        ].join(" -> ")}`,
+      );
+    }
+
+    await test.step(` >> prerequisite test case: ${prerequisiteTestCase.name}`, async () => {
+      await runFullConfiguredTestCaseFlow(
+        context,
+        prerequisiteTestCase,
+        testInfo,
+        [...includeStack, prerequisiteTestCase.name],
+        normalizedPrerequisite.sections,
+      );
+    });
+  }
+}
+
+async function runFullConfiguredTestCaseFlow(
+  context: RunContext,
+  pageCase: PageCase,
+  testInfo: TestInfo,
+  includeStack: string[],
+  sections: IncludeSection[] = defaultIncludeSections,
+): Promise<void> {
+  await runPrerequisiteTestCases(context, pageCase, testInfo, includeStack);
+
+  if (pageCase.scenario) {
+    await runConfiguredScenario(context, pageCase, testInfo);
+  }
+
+  if (pageCase.path || pageCase.url) {
+    const targetUrl = buildTargetUrl(pageCase, testData);
+    await context.activePage.goto(targetUrl, {
+      waitUntil: "domcontentloaded",
+      timeout:
+        pageCase.navigationTimeout ??
+        testData.defaults?.navigationTimeout ??
+        15_000,
+    });
+  }
+
+  await runConfiguredTestCaseSections(
+    context,
+    pageCase,
+    testInfo,
+    includeStack,
+    sections,
+  );
 }
 
 async function runConfiguredScenario(
@@ -1023,18 +1121,71 @@ async function runPageActions(
   testInfo: TestInfo,
 ): Promise<void> {
   for (const action of actions) {
-    await test.step(` >> Page action: ${action.name ?? action.type}`, async () => {
-      await runAction(context, action, undefined, testInfo);
-    });
-
     const postActionValidations = [
       ...(action.validations ?? []),
       ...(action.postValidations ?? []),
     ];
 
-    await runValidations(context, pageCase, postActionValidations, testInfo);
+    if (action.retryOnValidationFailure && postActionValidations.length > 0) {
+      await test.step(` >> Page action with validation retry: ${action.name ?? action.type}`, async () => {
+        await runActionWithValidationRetry(
+          context,
+          pageCase,
+          action,
+          postActionValidations,
+          testInfo,
+        );
+      });
+    } else {
+      await test.step(` >> Page action: ${action.name ?? action.type}`, async () => {
+        await runAction(context, action, undefined, testInfo);
+      });
+
+      await runValidations(context, pageCase, postActionValidations, testInfo);
+    }
+
     await runPageActions(context, pageCase, action.pageActions ?? [], testInfo);
   }
+}
+
+async function runActionWithValidationRetry(
+  context: RunContext,
+  pageCase: PageCase,
+  action: ActionConfig,
+  postActionValidations: ValidationConfig[],
+  testInfo: TestInfo,
+): Promise<void> {
+  const attempts = Math.max(1, Number(action.retryAttempts ?? 3));
+  const retryDelayMs = Math.max(0, Number(action.retryDelayMs ?? 1_000));
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      console.log(
+        ` >> Action attempt ${attempt}/${attempts}: ${action.name ?? action.type}`,
+      );
+
+      await runAction(context, action, undefined, testInfo);
+      await runValidations(context, pageCase, postActionValidations, testInfo);
+      return;
+    } catch (error) {
+      lastError = error;
+
+      if (attempt >= attempts) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Action "${action.name ?? action.type}" did not pass its post-action validations after ${attempts} attempt(s). Last error: ${message}`,
+        );
+      }
+
+      console.log(
+        ` >> Action validation failed. Waiting ${retryDelayMs}ms before retry ${attempt + 1}/${attempts}.`,
+      );
+      await context.activePage.waitForTimeout(retryDelayMs);
+    }
+  }
+
+  throw lastError;
 }
 
 function buildTargetUrl(pageCase: PageCase, data: TestData): string {
@@ -1081,6 +1232,24 @@ function buildLocatorFromRoot(
     }
     case "role": {
       if (!locatorConfig.role) throw new Error('role locator requires "role".');
+
+      // Convenience alias used by a few external/login pages where users
+      // naturally describe an input field as role=input. Playwright does not
+      // have an ARIA role named "input", so resolve common HTML input
+      // attributes instead of forcing test data authors to write a CSS selector.
+      if (locatorConfig.role.toLowerCase() === "input") {
+        const inputName = locatorConfig.name ?? locatorConfig.text;
+        if (inputName) {
+          const escapedInputName = escapeCssAttributeValue(inputName);
+          locator = root.locator(
+            `input[name="${escapedInputName}"], input[id="${escapedInputName}"], input[aria-label="${escapedInputName}"], input[placeholder="${escapedInputName}"], textarea[name="${escapedInputName}"], textarea[id="${escapedInputName}"], textarea[aria-label="${escapedInputName}"], textarea[placeholder="${escapedInputName}"]`,
+          );
+        } else {
+          locator = root.locator("input, textarea");
+        }
+        break;
+      }
+
       locator = root.getByRole(
         locatorConfig.role as never,
         {
@@ -1277,6 +1446,9 @@ async function runAction(
         throw new Error("connectToGitHub action requires Playwright testInfo.");
       await runPushCodeToGitHubAction(context.mainPage, action, testInfo);
       return;
+    case "fillEmailCodeAndSubmit":
+      await runFillEmailCodeAndSubmitAction(context, action);
+      return;
     case "buildAndRunApp":
       await runBuildAndRunAppAction(context);
       return;
@@ -1448,6 +1620,106 @@ async function runPushCodeToGitHubAction(
   });
 
   expect(email.subject).toContain("Push Code Github");
+}
+
+
+async function runFillEmailCodeAndSubmitAction(
+  context: RunContext,
+  action: ActionConfig,
+): Promise<void> {
+  if (!action.locator) {
+    throw new Error('fillEmailCodeAndSubmit action requires locator for the verification code input.');
+  }
+  if (!action.verifyButtonLocator) {
+    throw new Error('fillEmailCodeAndSubmit action requires verifyButtonLocator.');
+  }
+
+  const expectedEmailSubject =
+    action.expectedEmailSubject ?? '[GitHub] Please verify your device';
+  const emailTo = action.emailTo ?? process.env.GOOGLE_EMAIL;
+
+  if (!emailTo) {
+    throw new Error(
+      'fillEmailCodeAndSubmit requires GOOGLE_EMAIL in .env or "emailTo" in the action.',
+    );
+  }
+
+  // Gmail search uses second-level timestamps. Subtract a few seconds so we do
+  // not miss an email that arrives immediately after the previous UI action.
+  const sentAt = new Date(Date.now() - 10_000);
+
+  const email = await waitForGmailEmail({
+    from: action.emailFrom,
+    to: emailTo,
+    subjectContains: expectedEmailSubject,
+    bodyContains: action.emailBodyContains ?? action.codePrefix ?? 'Verification code:',
+    after: sentAt,
+    timeoutMs: action.timeout ?? 180_000,
+    pollIntervalMs: action.pollIntervalMs ?? 5_000,
+  });
+
+  expect(email.subject).toContain(expectedEmailSubject);
+
+  const verificationCode = extractVerificationCodeFromEmail(email, action);
+  console.log(`Extracted verification code from email subject "${email.subject}".`);
+
+  const codeInput = buildLocator(context.activePage, action.locator);
+  await codeInput.fill(verificationCode);
+
+  const verifyButton = buildLocator(context.activePage, action.verifyButtonLocator);
+  await verifyButton.click();
+}
+
+function extractVerificationCodeFromEmail(
+  email: ReceivedGmailEmail,
+  action: ActionConfig,
+): string {
+  const emailContent = [
+    email.bodyText,
+    htmlToPlainText(email.bodyHtml),
+    email.snippet,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  if (action.codeRegex) {
+    const regex = new RegExp(action.codeRegex, action.codeRegexFlags ?? 'i');
+    const match = regex.exec(emailContent);
+    const code = match?.[1] ?? match?.[0];
+    if (code?.trim()) return code.trim();
+
+    throw new Error(
+      `Could not extract verification code using codeRegex: ${action.codeRegex}`,
+    );
+  }
+
+  const codePrefix = action.codePrefix ?? 'Verification code:';
+  const prefixRegex = new RegExp(`${escapeRegExp(codePrefix)}\\s*([A-Za-z0-9][A-Za-z0-9 _-]{2,30})`, 'i');
+  const match = prefixRegex.exec(emailContent);
+  const code = match?.[1]?.trim();
+
+  if (!code) {
+    throw new Error(
+      `Could not find verification code in email body using prefix: ${codePrefix}`,
+    );
+  }
+
+  return code;
+}
+
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function validateDownloadedFile(

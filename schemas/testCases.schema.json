@@ -156,6 +156,17 @@
           "items": {
             "$ref": "#/$defs/testCaseInclude"
           }
+        },
+        "auth": {
+          "$ref": "#/$defs/authOptions",
+          "description": "Optional per-test authentication behavior. Use session=none for tests that must run without the reusable logged-in session, such as fresh user registration."
+        },
+        "prerequisiteTestCases": {
+          "type": "array",
+          "description": "Run one or more full configured test cases before this test case's own scenario/navigation. Useful for preconditions such as fresh user registration. The current test case controls auth/session behavior.",
+          "items": {
+            "$ref": "#/$defs/testCaseInclude"
+          }
         }
       },
       "anyOf": [
@@ -172,6 +183,29 @@
         {
           "required": [
             "scenario"
+          ]
+        },
+        {
+          "required": [
+            "auth"
+          ],
+          "properties": {
+            "auth": {
+              "type": "object",
+              "required": [
+                "session"
+              ],
+              "properties": {
+                "session": {
+                  "const": "none"
+                }
+              }
+            }
+          }
+        },
+        {
+          "required": [
+            "prerequisiteTestCases"
           ]
         }
       ],
@@ -781,6 +815,7 @@
             "downloadAppDefinition",
             "downloadCodeFromEmail",
             "connectToGitHub",
+            "fillEmailCodeAndSubmit",
             "buildAndRunApp",
             "waitForBuildComplete",
             "openRunOnDeviceModal",
@@ -872,6 +907,40 @@
             "number",
             "string"
           ]
+        },
+        "codePrefix": {
+          "type": "string",
+          "description": "Prefix in the email body before the verification code. Default is Verification code:."
+        },
+        "codeRegex": {
+          "type": "string",
+          "description": "Optional regular expression used to extract the verification code. The first capture group is used when available."
+        },
+        "codeRegexFlags": {
+          "type": "string",
+          "description": "Optional JavaScript regular expression flags for codeRegex. Default is i."
+        },
+        "verifyButtonLocator": {
+          "$ref": "#/$defs/locator",
+          "description": "Locator for the button clicked after the verification code is filled."
+        },
+        "retryOnValidationFailure": {
+          "type": "boolean",
+          "description": "When true, reruns this action if its action-level validations/postValidations fail. Useful for flaky UI clicks where the first click may not open the expected modal."
+        },
+        "retryAttempts": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Maximum number of action attempts when retryOnValidationFailure is true."
+        },
+        "retryDelayMs": {
+          "type": [
+            "number",
+            "string"
+          ],
+          "description": "Delay in milliseconds between retry attempts."
         }
       },
       "allOf": [
@@ -890,6 +959,24 @@
           "then": {
             "required": [
               "value"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "fillEmailCodeAndSubmit"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "locator",
+              "verifyButtonLocator"
             ]
           }
         }
@@ -1174,6 +1261,36 @@
           "items": {
             "$ref": "#/$defs/validationOrReusable"
           }
+        }
+      }
+    },
+    "authOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session": {
+          "type": "string",
+          "enum": [
+            "authenticated",
+            "none"
+          ],
+          "description": "authenticated reuses/logs in with the normal saved session. none creates a clean context and does not run the internal login feature."
+        },
+        "clearStorageState": {
+          "type": "boolean",
+          "description": "When true, delete the selected storage-state file before creating the page."
+        },
+        "storageStatePath": {
+          "type": "string",
+          "description": "Optional storage-state file to delete/reuse. Defaults to playwright/.auth/user.json."
+        },
+        "appUrlEnv": {
+          "type": "string",
+          "description": "Optional environment variable name for the app URL. Defaults to APP_URL."
+        },
+        "navigateToApp": {
+          "type": "boolean",
+          "description": "For session=none, open the app URL before executing the configured test steps. Defaults to true."
         }
       }
     }

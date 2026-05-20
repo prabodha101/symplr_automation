@@ -1,0 +1,133 @@
+{
+  "testCases": [
+    {
+      "name": "User Registration",
+      "enabled": true,
+      "auth": {
+        "session": "none",
+        "clearStorageState": true,
+        "navigateToApp": true
+      },
+      "pageAssertions": [
+        {
+          "type": "titleContains",
+          "expected": "${tokens.homePageTitle}"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Sign in",
+            "exact": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Continue with",
+                "timeout": 5000
+              }
+            }
+          ],
+          "name": "Click Sign in and wait until the Continue with modal opens",
+          "retryOnValidationFailure": true,
+          "retryAttempts": 5,
+          "retryDelayMs": 1500
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Sign in with Google"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Sign in",
+                "timeout": 30000
+              }
+            }
+          ]
+        },
+        {
+          "type": "fill",
+          "name": "Enter email",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Email or phone",
+            "exact": true
+          },
+          "value": "${tokens.symplrUserEmail}"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Next"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Welcome",
+                "timeout": 30000
+              }
+            }
+          ]
+        },
+        {
+          "type": "fill",
+          "name": "Enter password",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Enter your password",
+            "exact": true
+          },
+          "value": "${tokens.symplrUserPassword}"
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Next"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Welcome to Symplr.io",
+                "timeout": 60000
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "name": "Click 'Skip' button",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Skip"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "${tokens.buildAppsHeading}"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -66,7 +66,200 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Authorize SymplrStudio"
+                "text": "SymplrStudio",
+                "timeout": 30000
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Continue with Google"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Choose an account"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[data-email=\"${tokens.symplrUserEmail}\"]"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Authorize SymplrStudio",
+                "timeout": 30000
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Authorize Symplr-io"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Loading...",
+                "timeout": 30000
+              }
+            },
+            {
+              "$ref": "appDefinitionValidation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Fresh Account (With OTP): Validate that code can be pushed to GitHub from Developer Options",
+      "enabled": true,
+      "scenario": "existingApp",
+      "scenarioConfig": {
+        "type": "existingApp",
+        "appName": "${tokens.appName}"
+      },
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "appDefinitionValidation"
+        }
+      ],
+      "pageActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[aria-label=\"Download App Definition\"] + button"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Connect GitHub"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Connect"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Connect to GitHub"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Continue"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "SymplrStudio",
+                "timeout": 30000
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Continue with Google"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Choose an account"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[data-email=\"${tokens.symplrUserEmail}\"]"
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Device verification",
+                "timeout": 30000
+              }
+            }
+          ]
+        },
+        {
+          "type": "fillEmailCodeAndSubmit",
+          "name": "Read GitHub device verification code from email and verify",
+          "expectedEmailSubject": "[GitHub] Please verify your device",
+          "emailTo": "${tokens.symplrUserEmail}",
+          "emailBodyContains": "Verification code:",
+          "codePrefix": "Verification code:",
+          "codeRegex": "Verification code:\\s*([A-Za-z0-9][A-Za-z0-9 _-]{2,30})",
+          "timeout": 180000,
+          "pollIntervalMs": 5000,
+          "locator": {
+            "strategy": "role",
+            "role": "input",
+            "name": "otp",
+            "exact": true
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Authorize Symplr-io"
+          },
+          "validations": [
+            {
+              "$template": "buttonIsVisible",
+              "params": {
+                "name": "Share",
+                "timeout": 30000
               }
             }
           ]

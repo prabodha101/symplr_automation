@@ -106,6 +106,8 @@ function cloneConfig(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+const authSessionModes = new Set(['authenticated', 'none']);
+
 const locatorStrategies = new Set([
   'id',
   'role',
@@ -133,6 +135,7 @@ const actions = new Set([
   'downloadAppDefinition',
   'downloadCodeFromEmail',
   'connectToGitHub',
+  'fillEmailCodeAndSubmit',
   'buildAndRunApp',
   'waitForBuildComplete',
   'openRunOnDeviceModal',
@@ -215,8 +218,12 @@ for (const [scenarioName, scenarioDefinition] of Object.entries(scenarioDefiniti
 for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
   const prefix = `testCases[${pageIndex}] (${pageCase?.name ?? 'unnamed'})`;
   if (!pageCase?.name) errors.push(`${prefix}: missing name.`);
-  if (!pageCase?.path && !pageCase?.url && !pageCase?.scenario) {
-    errors.push(`${prefix}: provide path, url, or scenario.`);
+  const usesUnauthenticatedPage = pageCase?.auth?.session === 'none';
+  if (!pageCase?.path && !pageCase?.url && !pageCase?.scenario && !usesUnauthenticatedPage) {
+    errors.push(`${prefix}: provide path, url, scenario, or auth.session="none".`);
+  }
+  if (pageCase?.auth !== undefined) {
+    validateAuthOptions(`${prefix}.auth`, pageCase.auth);
   }
   if (pageCase?.scenario && !scenarioDefinitions[pageCase.scenario]) {
     errors.push(`${prefix}: scenario definition not found for "${pageCase.scenario}".`);
@@ -240,11 +247,12 @@ for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
     hasItems(pageCase?.pageAssertions) ||
     hasItems(pageCase?.validations) ||
     hasItems(pageCase?.pageActions) ||
-    hasItems(pageCase?.includeTestCases);
+    hasItems(pageCase?.includeTestCases) ||
+    hasItems(pageCase?.prerequisiteTestCases);
 
   if (!hasExecutableContent) {
     errors.push(
-      `${prefix}: provide at least one of validations, pageActions, pageAssertions, beforeValidateActions, or includeTestCases.`
+      `${prefix}: provide at least one of validations, pageActions, pageAssertions, beforeValidateActions, includeTestCases, or prerequisiteTestCases.`
     );
   }
 
@@ -267,9 +275,14 @@ for (const [pageIndex, pageCase] of (testCases ?? []).entries()) {
   for (const [includeIndex, include] of (pageCase?.includeTestCases ?? []).entries()) {
     validateTestCaseInclude(`${prefix}.includeTestCases[${includeIndex}]`, include, pageCase.name, []);
   }
+
+  for (const [prerequisiteIndex, prerequisite] of (pageCase?.prerequisiteTestCases ?? []).entries()) {
+    validateTestCaseInclude(`${prefix}.prerequisiteTestCases[${prerequisiteIndex}]`, prerequisite, pageCase.name, []);
+  }
 }
 
 validateIncludeCycles(testCases ?? []);
+validatePrerequisiteCycles(testCases ?? []);
 
 if (errors.length > 0) {
   console.error('Invalid test data:');
@@ -315,6 +328,30 @@ function hasNestedProperty(value, key) {
   }
 
   return true;
+}
+
+
+function validateAuthOptions(prefix, auth) {
+  if (!auth || typeof auth !== 'object' || Array.isArray(auth)) {
+    errors.push(`${prefix}: auth must be an object when provided.`);
+    return;
+  }
+
+  if (auth.session !== undefined && !authSessionModes.has(auth.session)) {
+    errors.push(`${prefix}.session: must be one of authenticated or none.`);
+  }
+  if (auth.clearStorageState !== undefined && typeof auth.clearStorageState !== 'boolean') {
+    errors.push(`${prefix}.clearStorageState: must be true or false.`);
+  }
+  if (auth.storageStatePath !== undefined && typeof auth.storageStatePath !== 'string') {
+    errors.push(`${prefix}.storageStatePath: must be a string path.`);
+  }
+  if (auth.appUrlEnv !== undefined && typeof auth.appUrlEnv !== 'string') {
+    errors.push(`${prefix}.appUrlEnv: must be a string environment variable name.`);
+  }
+  if (auth.navigateToApp !== undefined && typeof auth.navigateToApp !== 'boolean') {
+    errors.push(`${prefix}.navigateToApp: must be true or false.`);
+  }
 }
 
 function validateScenarioDefinition(prefix, scenarioDefinition) {
@@ -396,6 +433,28 @@ function validateIncludeCycles(cases) {
     for (const include of pageCase.includeTestCases ?? []) {
       const includeName = typeof include === 'string' ? include : include?.name;
       if (includeName) visit(includeName, [...stack, caseName]);
+    }
+  }
+
+  for (const pageCase of cases) {
+    if (pageCase?.name) visit(pageCase.name, []);
+  }
+}
+
+function validatePrerequisiteCycles(cases) {
+  const byName = new Map(cases.filter((item) => item?.name).map((item) => [item.name, item]));
+
+  function visit(caseName, stack) {
+    if (stack.includes(caseName)) {
+      errors.push(`Circular prerequisiteTestCases reference detected: ${[...stack, caseName].join(' -> ')}`);
+      return;
+    }
+    const pageCase = byName.get(caseName);
+    if (!pageCase) return;
+
+    for (const prerequisite of pageCase.prerequisiteTestCases ?? []) {
+      const prerequisiteName = typeof prerequisite === 'string' ? prerequisite : prerequisite?.name;
+      if (prerequisiteName) visit(prerequisiteName, [...stack, caseName]);
     }
   }
 
@@ -502,6 +561,44 @@ function validateAction(prefix, action) {
   }
   if (action.pollIntervalMs !== undefined && typeof action.pollIntervalMs !== 'number') {
     errors.push(`${prefix}: pollIntervalMs must be a number.`);
+  }
+  if (action.codePrefix !== undefined && typeof action.codePrefix !== 'string') {
+    errors.push(`${prefix}: codePrefix must be a string.`);
+  }
+  if (action.codeRegex !== undefined && typeof action.codeRegex !== 'string') {
+    errors.push(`${prefix}: codeRegex must be a string.`);
+  }
+  if (action.codeRegexFlags !== undefined && typeof action.codeRegexFlags !== 'string') {
+    errors.push(`${prefix}: codeRegexFlags must be a string.`);
+  }
+  if (action.verifyButtonLocator !== undefined) {
+    validateLocator(`${prefix}.verifyButtonLocator`, action.verifyButtonLocator);
+  }
+  if (action.retryOnValidationFailure !== undefined && typeof action.retryOnValidationFailure !== 'boolean') {
+    errors.push(`${prefix}: retryOnValidationFailure must be true or false.`);
+  }
+  if (action.retryAttempts !== undefined && typeof action.retryAttempts !== 'number') {
+    errors.push(`${prefix}: retryAttempts must be a number.`);
+  }
+  if (action.retryDelayMs !== undefined && typeof action.retryDelayMs !== 'number') {
+    errors.push(`${prefix}: retryDelayMs must be a number.`);
+  }
+  if (action.retryOnValidationFailure === true) {
+    const actionValidations = [
+      ...(action.validations ?? []),
+      ...(action.postValidations ?? []),
+    ];
+    if (actionValidations.length === 0) {
+      errors.push(`${prefix}: retryOnValidationFailure requires validations or postValidations to know when the retry succeeded.`);
+    }
+  }
+  if (action.type === 'fillEmailCodeAndSubmit') {
+    if (!action.locator) {
+      errors.push(`${prefix}: fillEmailCodeAndSubmit action requires locator for the verification code input.`);
+    }
+    if (!action.verifyButtonLocator) {
+      errors.push(`${prefix}: fillEmailCodeAndSubmit action requires verifyButtonLocator.`);
+    }
   }
 
   for (const [validationIndex, validation] of (action.validations ?? []).entries()) {

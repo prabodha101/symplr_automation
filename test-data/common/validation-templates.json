@@ -46,21 +46,6 @@
         }
       ]
     },
-    "headingIsVisibleByText_OLD": {
-      "name": "Validate '${param.text}' heading is visible",
-      "locator": {
-        "strategy": "role",
-        "role": "heading",
-        "name": "${param.text}",
-        "level": "${param.level}",
-        "exact": true
-      },
-      "assertions": [
-        {
-          "type": "visible"
-        }
-      ]
-    },
     "headingIsVisibleByText": {
       "defaults": {
         "timeout": 5000

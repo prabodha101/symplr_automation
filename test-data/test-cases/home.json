@@ -55,6 +55,66 @@
           }
         }
       ]
+    },
+    {
+      "name": "Create app using template",
+      "enabled": true,
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Open Create from Template section",
+          "locator": {
+            "strategy": "locator",
+            "locator": "p:has-text(\"Create from Template\")",
+            "exact": true
+          },
+          "validations": [
+            {
+              "$template": "textIsVisible",
+              "params": {
+                "text": "Create App"
+              }
+            }
+          ]
+        },
+        {
+          "type": "fill",
+          "name": "Search for existing template",
+          "locator": {
+            "strategy": "locator",
+            "locator": "input[name='searchStr']"
+          },
+          "value": "pay101V2DemoApp"
+        },
+        {
+          "type": "click",
+          "name": "Open existing template from search result",
+          "locator": {
+            "strategy": "locator",
+            "locator": "div[data-template-id=\"${tokens.templateId}\"]",
+            "exact": true,
+            "nth": 1
+          }
+        },
+        {
+          "type": "click",
+          "name": "Click 'Continue'",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Continue",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
+        },
+        {
+          "$ref": "blueprintScreen"
+        }
+      ]
     }
   ]
 }

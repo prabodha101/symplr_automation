@@ -518,6 +518,38 @@ Remove-Item playwright/.auth/user.json -ErrorAction SilentlyContinue
 
 Do not commit `playwright/.auth/user.json` to Git.
 
+### Tests That Must Run Without the Saved Login Session
+
+Most tests should use the default authenticated behavior. However, a few tests must start from a clean, logged-out browser state. A common example is the **User Registration** test.
+
+For those tests, add an `auth` block to the test case:
+
+```json
+{
+  "name": "User Registration",
+  "enabled": true,
+  "auth": {
+    "session": "none",
+    "clearStorageState": true,
+    "navigateToApp": true
+  },
+  "pageActions": []
+}
+```
+
+This means:
+
+```text
+For this test only:
+  -> delete the saved session file if it exists
+  -> create a clean browser context
+  -> do not run the framework's internal login helper
+  -> open APP_URL
+  -> run the configured JSON steps
+```
+
+Use this only for tests that need to validate login, registration, or first-time user behavior. Existing tests that do not include this `auth` block continue to reuse the normal saved login session.
+
 ---
 
 ## Validate Test Data
@@ -732,7 +764,9 @@ The imported JSON files support:
 - `validationTemplates` for reusable parameterized validation patterns
 - `validationSets` for reusable groups of validations
 - `testCases` for actual runnable tests
+- `auth` for per-test authentication behavior, such as clean logged-out registration tests
 - `includeTestCases` for composing end-to-end tests from existing test cases
+- `prerequisiteTestCases` for running one or more configured test flows before the current test case's own scenario/navigation
 - `beforeValidateActions` for actions before validations
 - `pageAssertions` for page title/URL checks
 - `validations` for UI validations
@@ -900,6 +934,59 @@ Referenced test cases do not rerun their own `scenario`, `path`, or `url`; only 
 
 ---
 
+## Prerequisite Test Cases
+
+Use `prerequisiteTestCases` when one full configured test flow must run before another test case starts its own scenario or navigation.
+
+This is different from `includeTestCases`:
+
+| Feature | When it runs | Main use |
+|---|---|---|
+| `prerequisiteTestCases` | Before the current test case's scenario/navigation | Preconditions such as fresh user registration |
+| `includeTestCases` | As part of the current test case sections | Reusing validations/actions inside an E2E test |
+
+Example: register a fresh user first, then create an app using the reusable `template` scenario.
+
+```json
+{
+  "name": "Create app using template",
+  "enabled": true,
+  "auth": {
+    "session": "none",
+    "clearStorageState": true,
+    "navigateToApp": true
+  },
+  "prerequisiteTestCases": [
+    "User Registration"
+  ],
+  "scenario": "template",
+  "scenarioConfig": {
+    "type": "template",
+    "templateName": "${tokens.templateName}"
+  },
+  "pageAssertions": [
+    {
+      "type": "urlContains",
+      "expected": "/dashboard/projects"
+    }
+  ],
+  "validations": [
+    {
+      "$ref": "blueprintScreen"
+    }
+  ]
+}
+```
+
+Important notes:
+
+- The current test case controls the browser session/auth behavior.
+- For fresh-user flows, use `auth.session = "none"` and `clearStorageState = true`.
+- The referenced prerequisite test runs in the same browser page/context before the current scenario starts.
+- The referenced prerequisite test's own `auth` block is not applied separately, because Playwright creates the browser fixture before the test body starts.
+
+---
+
 ## Supported Actions
 
 The runner supports generic actions:
@@ -921,6 +1008,7 @@ It also supports Symplr-specific named actions:
 downloadAppDefinition
 downloadCodeFromEmail
 connectToGitHub
+fillEmailCodeAndSubmit
 buildAndRunApp
 waitForBuildComplete
 openRunOnDeviceModal
@@ -950,7 +1038,8 @@ Choose the file that matches the feature area. For example:
 | Blueprint, Pages, Themes, Variables navigation tests | `test-data/test-cases/storyboard-navigation.json` |
 | Settings tests | `test-data/test-cases/settings.json` |
 | Share app tests | `test-data/test-cases/sharing.json` |
-| Email/GitHub tests | `test-data/test-cases/email-and-github.json` |
+| Download-code email tests | `test-data/test-cases/download-code.json` |
+| GitHub connection tests | `test-data/test-cases/connect-to-github.json` |
 | Build and Run tests | `test-data/test-cases/build-run.json` |
 | End-to-end composed tests | `test-data/test-cases/e2e.json` |
 
@@ -1079,6 +1168,22 @@ npm run validate:data
 npx playwright test tests/data-driven.spec.ts -g "Open Reports screen from storyboard" --headed
 ```
 
+### Example: New test that uses a prerequisite and a reusable scenario
+
+The test case `Create app using template` is an example of this pattern:
+
+```text
+Run User Registration first
+  -> then run the reusable template scenario
+  -> then validate the Blueprint screen
+```
+
+Run it with:
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "Create app using template" --headed
+```
+
 ---
 
 ## Examples
@@ -1179,7 +1284,55 @@ This action:
 5. Validates that the file exists and looks like a ZIP archive.
 6. Attaches the ZIP to the Playwright report.
 
-### Example 7: Build and Run Page Validation
+### Example 7: Fill an Email Verification Code and Submit
+
+Use `fillEmailCodeAndSubmit` when a UI action sends an email that contains a verification code.
+
+Example use case:
+
+```text
+GitHub sends an email with subject: [GitHub] Please verify your device
+The email body contains: Verification code: 123456
+```
+
+Config example:
+
+```json
+{
+  "type": "fillEmailCodeAndSubmit",
+  "name": "Read GitHub device verification code from email and verify",
+  "expectedEmailSubject": "[GitHub] Please verify your device",
+  "emailTo": "${tokens.symplrUserEmail}",
+  "emailBodyContains": "Verification code:",
+  "codePrefix": "Verification code:",
+  "codeRegex": "Verification code:\\s*([A-Za-z0-9][A-Za-z0-9 _-]{2,30})",
+  "timeout": 180000,
+  "pollIntervalMs": 5000,
+  "locator": {
+    "strategy": "role",
+    "role": "input",
+    "name": "otp",
+    "exact": true
+  },
+  "verifyButtonLocator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "Verify",
+    "exact": true
+  }
+}
+```
+
+This action:
+
+1. Waits for an email matching `expectedEmailSubject`.
+2. Looks for the verification code using `codeRegex` or `codePrefix`.
+3. Fills the code into the configured input locator.
+4. Clicks the configured verify button.
+
+`role: "input"` is supported as a convenience alias for common HTML inputs such as `input[name="otp"]`, `input[id="otp"]`, `input[aria-label="otp"]`, and similar textarea attributes.
+
+### Example 8: Build and Run Page Validation
 
 ```json
 {
@@ -1212,7 +1365,7 @@ Normal JSON-driven validations and actions then run against that run page until 
 }
 ```
 
-### Example 8: Validate an Element Inside an Iframe
+### Example 9: Validate an Element Inside an Iframe
 
 Some app-run content is rendered inside an iframe.
 
@@ -1238,7 +1391,7 @@ To validate an element inside that iframe, add `frameLocator`:
 
 The runner first enters the iframe, then finds the normal locator inside it.
 
-### Example 9: Validate After an Action
+### Example 10: Validate After an Action
 
 Use `postValidations` when you want to validate something immediately after a page action finishes.
 
@@ -1266,6 +1419,96 @@ action -> postValidations -> nested pageActions
 ```
 
 The older `validations` property on an action still works and runs after the action. `postValidations` is preferred for new action-level checks.
+
+### Example 11: Retry an Action Until Its Validation Passes
+
+Some UI actions can be timing-sensitive. For example, the **Sign in** button may be clickable, but the login modal may not open on the first click if the application is still finishing background work.
+
+For this situation, use `retryOnValidationFailure` on the action. The framework will:
+
+1. Run the action.
+2. Run the action-level `validations` or `postValidations`.
+3. If those validations fail, wait and try the action again.
+4. Stop retrying as soon as the validations pass.
+
+Example:
+
+```json
+{
+  "type": "click",
+  "name": "Click Sign in and wait until the Continue with modal opens",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "Sign in"
+  },
+  "retryOnValidationFailure": true,
+  "retryAttempts": 5,
+  "retryDelayMs": 1500,
+  "validations": [
+    {
+      "$template": "textIsVisible",
+      "params": {
+        "text": "Continue with",
+        "timeout": 5000
+      }
+    }
+  ]
+}
+```
+
+Use this only when the success condition can be validated clearly after the action.
+
+---
+
+## Example: User Registration Without Reusing Login Session
+
+The `User Registration` test needs to run as a logged-out user. It should not reuse `playwright/.auth/user.json`, and it should not call the framework's internal login helper.
+
+Use this config pattern:
+
+```json
+{
+  "name": "User Registration",
+  "enabled": true,
+  "auth": {
+    "session": "none",
+    "clearStorageState": true,
+    "navigateToApp": true
+  },
+  "pageActions": [
+    {
+      "type": "click",
+      "name": "Click Sign in and wait until the Continue with modal opens",
+      "locator": {
+        "strategy": "role",
+        "role": "button",
+        "name": "Sign in"
+      },
+      "retryOnValidationFailure": true,
+      "retryAttempts": 5,
+      "retryDelayMs": 1500,
+      "validations": [
+        {
+          "$template": "textIsVisible",
+          "params": {
+            "text": "Continue with",
+            "timeout": 5000
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Recommended command:
+
+```bash
+npx playwright test tests/data-driven.spec.ts -g "User Registration" --headed
+```
+
+This test starts clean, opens the app URL, and then executes the configured registration actions from JSON.
 
 ---
 

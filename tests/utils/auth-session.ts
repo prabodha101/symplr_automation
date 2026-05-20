@@ -4,15 +4,44 @@ import { Browser, BrowserContext, Page } from '@playwright/test';
 import { DashboardHomePage } from '../../pages/DashboardHomePage';
 import { LoginPage } from '../../pages/LoginPage';
 
-const AUTH_FILE = path.resolve(process.cwd(), 'playwright/.auth/user.json');
+const DEFAULT_AUTH_FILE = path.resolve(process.cwd(), 'playwright/.auth/user.json');
 
-function ensureAuthDir(): void {
-  fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
+type AuthSessionMode = 'authenticated' | 'none';
+
+export type AuthPageOptions = {
+  /**
+   * authenticated = use the normal saved-login behavior.
+   * none = create a clean browser context and do not run internal login.
+   */
+  session?: AuthSessionMode;
+  /** Delete the selected storage-state file before creating the page. */
+  clearStorageState?: boolean;
+  /** Optional custom storage-state file. Defaults to playwright/.auth/user.json. */
+  storageStatePath?: string;
+  /** Optional env var name for the app URL. Defaults to APP_URL. */
+  appUrlEnv?: string;
+  /** For session=none, open the app URL before the test body starts. Defaults to true. */
+  navigateToApp?: boolean;
+};
+
+function resolveAuthFile(storageStatePath?: string): string {
+  return storageStatePath
+    ? path.resolve(process.cwd(), storageStatePath)
+    : DEFAULT_AUTH_FILE;
 }
 
-function deleteAuthFileIfExists(): void {
-  if (fs.existsSync(AUTH_FILE)) {
-    fs.rmSync(AUTH_FILE, { force: true });
+function resolveAppUrl(options: AuthPageOptions = {}): string {
+  const appUrlEnv = options.appUrlEnv ?? 'APP_URL';
+  return process.env[appUrlEnv] ?? process.env.APP_URL ?? 'https://101studio.co/';
+}
+
+function ensureAuthDir(authFile: string = DEFAULT_AUTH_FILE): void {
+  fs.mkdirSync(path.dirname(authFile), { recursive: true });
+}
+
+function deleteAuthFileIfExists(authFile: string = DEFAULT_AUTH_FILE): void {
+  if (fs.existsSync(authFile)) {
+    fs.rmSync(authFile, { force: true });
   }
 }
 
@@ -34,8 +63,12 @@ async function isSessionValid(page: Page, appUrl: string): Promise<boolean> {
   }
 }
 
-async function loginAndSaveSession(browser: Browser): Promise<{ context: BrowserContext; page: Page }> {
-  const appUrl = process.env.APP_URL ?? 'https://101studio.co/';
+async function loginAndSaveSession(
+  browser: Browser,
+  options: AuthPageOptions = {},
+): Promise<{ context: BrowserContext; page: Page }> {
+  const appUrl = resolveAppUrl(options);
+  const authFile = resolveAuthFile(options.storageStatePath);
   const email = process.env.GOOGLE_EMAIL;
   const password = process.env.GOOGLE_PASSWORD;
 
@@ -53,17 +86,25 @@ async function loginAndSaveSession(browser: Browser): Promise<{ context: Browser
   await loginPage.signInWithGoogle(email, password);
   await dashboardHomePage.waitForLoaded(5 * 60 * 1000);
 
-  ensureAuthDir();
-  await context.storageState({ path: AUTH_FILE });
+  ensureAuthDir(authFile);
+  await context.storageState({ path: authFile });
 
   return { context, page };
 }
 
-export async function getAuthenticatedPage(browser: Browser): Promise<{ context: BrowserContext; page: Page }> {
-  const appUrl = process.env.APP_URL ?? 'https://101studio.co/';
+export async function getAuthenticatedPage(
+  browser: Browser,
+  options: AuthPageOptions = {},
+): Promise<{ context: BrowserContext; page: Page }> {
+  const appUrl = resolveAppUrl(options);
+  const authFile = resolveAuthFile(options.storageStatePath);
 
-  if (fs.existsSync(AUTH_FILE)) {
-    const context = await browser.newContext({ storageState: AUTH_FILE });
+  if (options.clearStorageState) {
+    deleteAuthFileIfExists(authFile);
+  }
+
+  if (fs.existsSync(authFile)) {
+    const context = await browser.newContext({ storageState: authFile });
     const page = await context.newPage();
 
     const valid = await isSessionValid(page, appUrl);
@@ -72,8 +113,38 @@ export async function getAuthenticatedPage(browser: Browser): Promise<{ context:
     }
 
     await context.close();
-    deleteAuthFileIfExists();
+    deleteAuthFileIfExists(authFile);
   }
 
-  return await loginAndSaveSession(browser);
+  return await loginAndSaveSession(browser, options);
+}
+
+export async function getUnauthenticatedPage(
+  browser: Browser,
+  options: AuthPageOptions = {},
+): Promise<{ context: BrowserContext; page: Page }> {
+  const authFile = resolveAuthFile(options.storageStatePath);
+  if (options.clearStorageState) {
+    deleteAuthFileIfExists(authFile);
+  }
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  if (options.navigateToApp !== false) {
+    await page.goto(resolveAppUrl(options), { waitUntil: 'domcontentloaded' });
+  }
+
+  return { context, page };
+}
+
+export async function getPageForAuthMode(
+  browser: Browser,
+  options: AuthPageOptions = {},
+): Promise<{ context: BrowserContext; page: Page }> {
+  if (options.session === 'none') {
+    return await getUnauthenticatedPage(browser, options);
+  }
+
+  return await getAuthenticatedPage(browser, options);
 }

@@ -1,6 +1,20 @@
 {
   "testCases": [
     {
+      "name": "Fresh Account: End to End scenario test",
+      "enabled": true,
+      "auth": {
+        "session": "none",
+        "clearStorageState": true,
+        "navigateToApp": true
+      },
+      "includeTestCases": [
+        "User Registration",
+        "Create app using template",
+        "Fresh Account (With OTP): Validate that code can be pushed to GitHub from Developer Options"
+      ]
+    },
+    {
       "name": "End to End scenario test using existing app",
       "enabled": true,
       "scenario": "existingApp",
