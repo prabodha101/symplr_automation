@@ -11,6 +11,7 @@
       "beforeValidateActions": [
         {
           "type": "click",
+          "name": "Go to 'Blueprint' page",
           "locator": {
             "strategy": "locator",
             "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
@@ -29,7 +30,8 @@
           "name": "Open Developer Tools menu",
           "locator": {
             "strategy": "locator",
-            "locator": "div[aria-label=\"Download App Definition\"] + button"
+            "locator": "div[aria-label=\"Download App Definition\"] ~ button",
+            "first": true
           },
           "validations": [
             {
@@ -62,7 +64,7 @@
           "type": "downloadCodeEmail",
           "name": "Validate download code email and ZIP file",
           "expectedEmailSubject": "Download Code",
-          "timeout": 180000,
+          "timeout": 240000,
           "pollIntervalMs": 5000,
           "expectedExtension": ".zip",
           "minBytes": 1

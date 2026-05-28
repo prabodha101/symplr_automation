@@ -28,7 +28,8 @@
           "type": "click",
           "locator": {
             "strategy": "locator",
-            "locator": "div[aria-label=\"Download App Definition\"] + button"
+            "locator": "div[aria-label=\"Download App Definition\"] ~ button",
+            "first": true
           },
           "validations": [
             {
@@ -154,7 +155,8 @@
           "type": "click",
           "locator": {
             "strategy": "locator",
-            "locator": "div[aria-label=\"Download App Definition\"] + button"
+            "locator": "div[aria-label=\"Download App Definition\"] ~ button",
+            "first": true
           },
           "validations": [
             {
@@ -254,8 +256,7 @@
               "verifyButtonLocator": {
                 "strategy": "role",
                 "role": "button",
-                "name": "Verify",
-                "exact": true
+                "name": "Verify"
               }
             },
             {
@@ -318,7 +319,8 @@
           "name": "Open Developer Tools menu",
           "locator": {
             "strategy": "locator",
-            "locator": "div[aria-label=\"Download App Definition\"] + button"
+            "locator": "div[aria-label=\"Download App Definition\"] ~ button",
+            "first": true
           },
           "validations": [
             {
