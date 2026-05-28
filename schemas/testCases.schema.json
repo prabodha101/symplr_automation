@@ -834,6 +834,10 @@
             "press",
             "selectOption",
             "download",
+            "clickAndSwitchToPopup",
+            "switchToPopupPage",
+            "waitForTimeout",
+            "waitForLoadState",
             "downloadAppDefinition",
             "downloadCodeEmail",
             "connectToGitHubEmail",
@@ -854,6 +858,10 @@
             "number",
             "boolean"
           ]
+        },
+        "valueEnv": {
+          "type": "string",
+          "description": "Environment variable name used as the action value, for example FIGMA_GOOGLE_EMAIL or FIGMA_GOOGLE_PASSWORD. Useful for credentials so they are not stored in JSON."
         },
         "locator": {
           "anyOf": [
@@ -1012,8 +1020,17 @@
             }
           },
           "then": {
-            "required": [
-              "value"
+            "anyOf": [
+              {
+                "required": [
+                  "value"
+                ]
+              },
+              {
+                "required": [
+                  "valueEnv"
+                ]
+              }
             ]
           }
         },

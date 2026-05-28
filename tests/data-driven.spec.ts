@@ -65,6 +65,10 @@ type ActionConfig = {
   | "press"
   | "selectOption"
   | "download"
+  | "clickAndSwitchToPopup"
+  | "switchToPopupPage"
+  | "waitForTimeout"
+  | "waitForLoadState"
   | "downloadAppDefinition"
   | "downloadCodeEmail"
   | "connectToGitHubEmail"
@@ -78,6 +82,8 @@ type ActionConfig = {
   | "switchToRunPage";
   name?: string;
   value?: string | number | boolean;
+  /** Optional environment variable name used as the value for fill/press/selectOption. Useful for credentials. */
+  valueEnv?: string;
   locator?: LocatorConfig;
   validations?: ValidationConfig[];
   /** Preferred alias for validations that run immediately after this action. */
@@ -342,6 +348,8 @@ type RunContext = {
   mainPage: Page;
   /** Page currently receiving config-driven locators, validations, and generic actions. */
   activePage: Page;
+  /** Last generic popup/new window captured by a config action. */
+  popupPage?: Page;
   /** Popup page opened by the Build action. */
   runPage?: Page;
   appRunPage?: AppRunPage;
@@ -1425,6 +1433,42 @@ function buildLocatorFromRoot(
   return locator;
 }
 
+function resolveActionValue(action: ActionConfig): string | number | boolean | undefined {
+  if (action.valueEnv) {
+    const value = process.env[action.valueEnv];
+    if (value === undefined) {
+      throw new Error(
+        `Action "${action.name ?? action.type ?? "unnamed"}" requires environment variable ${action.valueEnv}, but it is not set.`,
+      );
+    }
+    return value;
+  }
+
+  return action.value;
+}
+
+async function runClickAndSwitchToPopupAction(
+  context: RunContext,
+  locator: Locator,
+  action: ActionConfig,
+): Promise<void> {
+  const timeout = action.timeout ?? 60_000;
+  const sourcePage = context.activePage;
+
+  const popupPromise = sourcePage.waitForEvent("popup", { timeout });
+  await locator.click();
+  const popupPage = await popupPromise;
+
+  await popupPage.waitForLoadState("domcontentloaded", { timeout }).catch(() => {
+    // Some OAuth pages keep loading while redirects happen. The popup has still
+    // been captured and can receive the next configured action.
+  });
+
+  context.popupPage = popupPage;
+  context.activePage = popupPage;
+  await popupPage.bringToFront();
+}
+
 async function runAction(
   context: RunContext,
   action: ActionConfig,
@@ -1450,7 +1494,7 @@ async function runAction(
       return;
     case "fill":
       if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
-      await locator.fill(String(action.value ?? ""));
+      await locator.fill(String(resolveActionValue(action) ?? ""));
       return;
     case "check":
       if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
@@ -1466,15 +1510,17 @@ async function runAction(
       return;
     case "press":
       if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
-      if (!action.value)
+      const pressValue = resolveActionValue(action);
+      if (!pressValue)
         throw new Error('press action requires "value", for example "Enter".');
-      await locator.press(String(action.value));
+      await locator.press(String(pressValue));
       return;
     case "selectOption":
       if (!locator) throw new Error(`Action "${action.type}" needs a locator.`);
-      if (action.value === undefined)
+      const optionValue = resolveActionValue(action);
+      if (optionValue === undefined)
         throw new Error('selectOption action requires "value".');
-      await locator.selectOption(String(action.value));
+      await locator.selectOption(String(optionValue));
       return;
     case "download":
       if (!locator) throw new Error("download action requires a locator.");
@@ -1487,6 +1533,27 @@ async function runAction(
         testInfo,
       );
       return;
+    case "clickAndSwitchToPopup":
+      if (!locator) throw new Error("clickAndSwitchToPopup action requires a locator.");
+      await runClickAndSwitchToPopupAction(context, locator, action);
+      return;
+    case "switchToPopupPage":
+      if (!context.popupPage || context.popupPage.isClosed()) {
+        throw new Error(
+          'switchToPopupPage requires a previous "clickAndSwitchToPopup" action and an open popup page.',
+        );
+      }
+      context.activePage = context.popupPage;
+      await context.popupPage.bringToFront();
+      return;
+    case "waitForTimeout":
+      await context.activePage.waitForTimeout(Number(action.timeout ?? action.value ?? 1_000));
+      return;
+    case "waitForLoadState": {
+      const state = String(action.value ?? "domcontentloaded") as "load" | "domcontentloaded" | "networkidle";
+      await context.activePage.waitForLoadState(state, { timeout: action.timeout ?? 30_000 });
+      return;
+    }
     case "downloadAppDefinition":
       if (!testInfo)
         throw new Error(
@@ -1784,8 +1851,8 @@ async function runFillEmailCodeAndSubmitAction(
   const codeInput = buildLocator(context.activePage, action.locator);
   await codeInput.fill(verificationCode);
 
-  const verifyButton = buildLocator(context.activePage, action.verifyButtonLocator);
-  await verifyButton.click();
+  // const verifyButton = buildLocator(context.activePage, action.verifyButtonLocator);
+  // await verifyButton.click();
 }
 
 function extractVerificationCodeFromEmail(

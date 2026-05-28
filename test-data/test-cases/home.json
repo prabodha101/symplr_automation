@@ -84,7 +84,7 @@
             "strategy": "locator",
             "locator": "input[name='searchStr']"
           },
-          "value": "pay101V2DemoApp"
+          "value": "${tokens.templateName}"
         },
         {
           "type": "click",
@@ -113,6 +113,94 @@
         },
         {
           "$ref": "blueprintScreen"
+        }
+      ]
+    },
+    {
+      "name": "Create app using figma",
+      "enabled": true,
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Open Import from Figma dialog",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.importFromFigmaButton}",
+            "exact": true
+          }
+        },
+        {
+          "type": "fill",
+          "name": "Enter Figma design URL",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "https://www.figma.com/design/zoxen",
+            "exact": true
+          },
+          "value": "${tokens.figmaUrl}"
+        },
+        {
+          "type": "click",
+          "name": "Click Import",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "Import",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$template": "textIsVisible",
+          "params": {
+            "text": "Setting Up the App, Hang Tight!",
+            "timeout": 30000
+          }
+        },
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    },
+    {
+      "name": "Create app using prompt",
+      "enabled": true,
+      "beforeValidateActions": [
+        {
+          "type": "fill",
+          "name": "Enter app prompt",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Write your future app idea",
+            "exact": true
+          },
+          "value": "${tokens.prompt}",
+          "validations": [
+            {
+              "type": "buttonIsEnabled",
+              "locator": {
+                "name": "${tokens.startBuildingButton}"
+              }
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "name": "Click Start Building",
+          "locator": {
+            "strategy": "role",
+            "role": "button",
+            "name": "${tokens.startBuildingButton}"
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
         }
       ]
     }

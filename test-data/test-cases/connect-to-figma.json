@@ -1,6 +1,30 @@
 {
     "testCases": [
         {
+            "name": "Close Figma",
+            "enabled": true,
+            "beforeValidateActions": [
+                {
+                    "type": "click",
+                    "name": "Open Import from Figma dialog",
+                    "locator": {
+                        "strategy": "role",
+                        "role": "button",
+                        "name": "${tokens.importFromFigmaButton}",
+                        "exact": true
+                    }
+                },
+                {
+                    "type": "click",
+                    "name": "Close the import figma modal",
+                    "locator": {
+                        "strategy": "locator",
+                        "locator": "div.MuiBox-root.css-1ww6hih"
+                    }
+                }
+            ]
+        },
+        {
             "name": "Fresh Account: Connect to Figma",
             "enabled": true,
             "beforeValidateActions": [
@@ -33,9 +57,60 @@
                     },
                     "validations": [
                         {
+                            "$template": "textIsVisible",
+                            "params": {
+                                "text": "Sign in to Figma",
+                                "timeout": 30000
+                            }
+                        }
+                    ]
+                }
+            ],
+            "pageActions": [
+                {
+                    "type": "clickAndSwitchToPopup",
+                    "name": "Click Continue with Google and switch to Google authentication window",
+                    "locator": {
+                        "strategy": "role",
+                        "role": "button",
+                        "name": "Continue with Google",
+                        "exact": true
+                    },
+                    "timeout": 60000
+                },
+                {
+                    "type": "conditional",
+                    "name": "Enter Figma Google email if requested",
+                    "condition": {
+                        "locator": {
+                            "strategy": "locator",
+                            "locator": "div[data-email=\"${tokens.symplrUserEmail}\"]"
+                        },
+                        "assertion": "visible",
+                        "timeout": 30000
+                    },
+                    "thenActions": [
+                        {
+                            "type": "click",
+                            "name": "Choose Google account",
+                            "locator": {
+                                "strategy": "locator",
+                                "locator": "div[data-email=\"${tokens.symplrUserEmail}\"]"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "type": "switchToMainPage",
+                    "name": "Switch back to Symplr window"
+                },
+                {
+                    "validations": [
+                        {
                             "$template": "buttonIsVisible",
                             "params": {
-                                "name": "Allow access"
+                                "name": "Allow access",
+                                "timeout": 60000
                             }
                         }
                     ]
@@ -46,27 +121,24 @@
                     "locator": {
                         "strategy": "role",
                         "role": "button",
-                        "name": "Allow access",
-                        "exact": true
-                    }
-                }
-            ],
-            "validations": [
-                {
-                    "$template": "textIsVisible",
-                    "params": {
-                        "text": "Import from Figma",
-                        "timeout": 60000
-                    }
-                }
-            ],
-            "pageActions": [
+                        "name": "Allow access"
+                    },
+                    "validations": [
+                        {
+                            "$template": "textIsVisible",
+                            "params": {
+                                "text": "Import from Figma",
+                                "timeout": 60000
+                            }
+                        }
+                    ]
+                },
                 {
                     "type": "click",
                     "name": "Close the import figma modal",
                     "locator": {
                         "strategy": "locator",
-                        "locator": "div.Icon.css-1szd5f0"
+                        "locator": "div.MuiBox-root.css-1ww6hih"
                     }
                 }
             ]

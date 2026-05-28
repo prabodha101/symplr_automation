@@ -111,6 +111,29 @@
         ]
       }
     },
+    "buttonIsEnabled": {
+      "defaults": {
+        "timeout": 5000,
+        "first": false,
+        "exact": true
+      },
+      "template": {
+        "name": "Validate '${param.name}' button is enabled",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "${param.name}",
+          "exact": "${param.exact}",
+          "first": "${params.first}"
+        },
+        "assertions": [
+          {
+            "type": "enabled",
+            "timeout": "${param.timeout}"
+          }
+        ]
+      }
+    },
     "assertElementByRole": {
       "defaults": {
         "timeout": 5000

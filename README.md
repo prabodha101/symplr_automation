@@ -276,6 +276,16 @@ Node.js 22 LTS is also supported.
 
 ---
 
+
+### 8. Figma Account Access
+
+For Figma connection tests:
+
+- The Figma account should be valid and able to complete Google authentication manually.
+- If the Figma Google login page asks for credentials, add them to `.env` using `FIGMA_GOOGLE_EMAIL` and `FIGMA_GOOGLE_PASSWORD`.
+- If Google blocks automated login for the account, sign in manually once or use a test account that Google allows from the automation machine.
+
+
 ## Fresh Clone Setup
 
 From a clean machine or fresh checkout:
@@ -343,6 +353,10 @@ APP_URL=https://101studio.co/
 GOOGLE_EMAIL=qa.automation.user@gmail.com
 GOOGLE_PASSWORD=your-password-here
 
+# Optional: used by the Figma OAuth popup test when Figma asks for Google login.
+FIGMA_GOOGLE_EMAIL=figma.user@gmail.com
+FIGMA_GOOGLE_PASSWORD=your-figma-google-password
+
 EMAIL_SENDER=notification@101digital.io
 
 GMAIL_CREDENTIALS_PATH=secrets/credentials.json
@@ -358,6 +372,8 @@ GMAIL_REDIRECT_URI=http://127.0.0.1:53682/oauth2callback
 | `APP_URL` | Symplr application URL used by Playwright. This should be the single source of truth for the base URL. |
 | `GOOGLE_EMAIL` | Google account used for Symplr login and Gmail inbox validation. |
 | `GOOGLE_PASSWORD` | Google account password used by the UI login flow. |
+| `FIGMA_GOOGLE_EMAIL` | Optional Google email used by the config-driven Figma OAuth popup flow. |
+| `FIGMA_GOOGLE_PASSWORD` | Optional Google password used by the config-driven Figma OAuth popup flow. |
 | `EMAIL_SENDER` | Sender filter used while polling Gmail. Leave blank only if you want to match by recipient and subject only. |
 | `GMAIL_CREDENTIALS_PATH` | Path to Google OAuth client credentials file. |
 | `GMAIL_TOKEN_PATH` | Path where the generated Gmail OAuth token is stored. |
@@ -773,6 +789,7 @@ The imported JSON files support:
 - `pageActions` for configured user interactions
 - `postValidations` for validations immediately after a page action
 - `frameLocator` for validating elements inside iframes
+- `valueEnv` for reading sensitive action values from `.env`, such as Figma Google email/password
 
 ---
 
@@ -1000,6 +1017,10 @@ hover
 press
 selectOption
 download
+clickAndSwitchToPopup
+switchToPopupPage
+waitForTimeout
+waitForLoadState
 ```
 
 It also supports Symplr-specific named actions:
@@ -1192,6 +1213,113 @@ npx playwright test tests/data-driven.spec.ts -g "Create app using template" --h
 ```
 
 ---
+
+## Popup, New-Window, and Figma OAuth Flows
+
+Some external authentication flows open a new browser window or popup. The Figma connection flow is an example because clicking **Continue with Google** can open a Google authentication window.
+
+Use `clickAndSwitchToPopup` when a click opens a new popup window:
+
+```json
+{
+  "type": "clickAndSwitchToPopup",
+  "name": "Click Continue with Google and switch to Google authentication window",
+  "locator": {
+    "strategy": "role",
+    "role": "button",
+    "name": "Continue with Google",
+    "exact": true
+  },
+  "timeout": 60000
+}
+```
+
+After this action, the active Playwright page becomes the popup. Any following configured actions run against the popup until the test switches page context again.
+
+To switch back to the main Symplr page:
+
+```json
+{
+  "type": "switchToMainPage",
+  "name": "Switch back to Symplr window"
+}
+```
+
+To switch back to the popup if needed:
+
+```json
+{
+  "type": "switchToPopupPage",
+  "name": "Switch to the popup window"
+}
+```
+
+You can also wait for browser load states or fixed delays when external login pages are redirecting:
+
+```json
+{
+  "type": "waitForLoadState",
+  "value": "domcontentloaded",
+  "timeout": 30000
+}
+```
+
+```json
+{
+  "type": "waitForTimeout",
+  "timeout": 2000
+}
+```
+
+### Using `.env` values in configured actions
+
+Use `valueEnv` when an action needs a sensitive value, such as an email or password. This keeps credentials out of JSON.
+
+Example:
+
+```json
+{
+  "type": "fill",
+  "name": "Enter Figma Google email",
+  "locator": {
+    "strategy": "role",
+    "role": "textbox",
+    "name": "Email or phone",
+    "exact": true
+  },
+  "valueEnv": "FIGMA_GOOGLE_EMAIL"
+}
+```
+
+Example password action:
+
+```json
+{
+  "type": "fill",
+  "name": "Enter Figma Google password",
+  "locator": {
+    "strategy": "role",
+    "role": "textbox",
+    "name": "Enter your password",
+    "exact": true
+  },
+  "valueEnv": "FIGMA_GOOGLE_PASSWORD"
+}
+```
+
+Add these values to `.env` when running Figma popup tests:
+
+```env
+FIGMA_GOOGLE_EMAIL=figma.user@gmail.com
+FIGMA_GOOGLE_PASSWORD=your-figma-google-password
+```
+
+The current Figma test case is stored in:
+
+```text
+test-data/test-cases/connect-to-figma.json
+```
+
 
 ## Examples
 

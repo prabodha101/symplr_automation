@@ -132,6 +132,10 @@ const actions = new Set([
   'press',
   'selectOption',
   'download',
+  'clickAndSwitchToPopup',
+  'switchToPopupPage',
+  'waitForTimeout',
+  'waitForLoadState',
   'downloadAppDefinition',
   'downloadCodeEmail',
   'connectToGitHubEmail',
@@ -562,11 +566,14 @@ function validateAction(prefix, action) {
     return;
   }
 
-  if (['fill', 'press', 'selectOption'].includes(action.type) && action.value === undefined) {
-    errors.push(`${prefix}: action "${action.type}" requires value.`);
+  if (['fill', 'press', 'selectOption'].includes(action.type) && action.value === undefined && action.valueEnv === undefined) {
+    errors.push(`${prefix}: action "${action.type}" requires value or valueEnv.`);
   }
   if (action.type === 'download' && !action.locator) {
     errors.push(`${prefix}: download action requires locator.`);
+  }
+  if (action.valueEnv !== undefined && typeof action.valueEnv !== 'string') {
+    errors.push(`${prefix}: valueEnv must be a string environment variable name.`);
   }
   if (action.locator) validateLocator(`${prefix}.locator`, action.locator);
   if (action.name !== undefined && typeof action.name !== 'string') {

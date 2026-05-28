@@ -12,7 +12,15 @@
             "name": "Write your future app idea",
             "exact": true
           },
-          "value": "${scenarioConfig.prompt}"
+          "value": "${scenarioConfig.prompt}",
+          "validations": [
+            {
+              "type": "buttonIsEnabled",
+              "locator": {
+                "name": "${tokens.startBuildingButton}"
+              }
+            }
+          ]
         },
         {
           "type": "click",
@@ -20,8 +28,7 @@
           "locator": {
             "strategy": "role",
             "role": "button",
-            "name": "${tokens.startBuildingButton}",
-            "exact": true
+            "name": "${tokens.startBuildingButton}"
           }
         }
       ],
@@ -156,7 +163,7 @@
             "strategy": "locator",
             "locator": "div[data-template-id=\"${tokens.templateId}\"]",
             "exact": true,
-            "nth": 1
+            "nth": 0
           }
         },
         {
