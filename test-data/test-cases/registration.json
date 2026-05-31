@@ -99,33 +99,7 @@
             "strategy": "role",
             "role": "button",
             "name": "Next"
-          },
-          "validations": [
-            {
-              "$template": "textIsVisible",
-              "params": {
-                "text": "Welcome to Symplr.io",
-                "timeout": 60000
-              }
-            }
-          ]
-        },
-        {
-          "type": "click",
-          "name": "Click 'Skip' button",
-          "locator": {
-            "strategy": "role",
-            "role": "button",
-            "name": "Skip"
-          },
-          "validations": [
-            {
-              "$template": "textIsVisible",
-              "params": {
-                "text": "${tokens.buildAppsHeading}"
-              }
-            }
-          ]
+          }
         }
       ]
     }

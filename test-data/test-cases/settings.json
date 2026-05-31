@@ -425,7 +425,7 @@
           "locator": {
             "strategy": "role",
             "role": "button",
-            "name": "App Bar & Nav Bar",
+            "name": "Nav Bar",
             "exact": true,
             "first": true
           },
@@ -433,14 +433,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "App Bar & Nav Bar",
-                "nth": 1
-              }
-            },
-            {
-              "$template": "textIsVisible",
-              "params": {
-                "text": "App Bar"
+                "text": "Re-Order Pages"
               }
             }
           ]
