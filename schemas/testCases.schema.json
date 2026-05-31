@@ -9,7 +9,7 @@
     },
     "imports": {
       "type": "array",
-      "description": "Optional list of JSON files to import and merge into this file. Paths are relative to the file that declares the import. Imported testCases are appended in order; shared objects such as tokens, scenarioDefinitions, validationTemplates, and validationSets are merged.",
+      "description": "Optional list of JSON files to import and merge into this file. Paths are relative to the file that declares the import. Imported testCases are appended in order; shared objects such as tokens, validationTemplates, and validationSets are merged.",
       "items": {
         "type": "string"
       },
@@ -73,13 +73,6 @@
       "items": {
         "$ref": "#/$defs/pageCase"
       }
-    },
-    "scenarioDefinitions": {
-      "type": "object",
-      "description": "Reusable scenario flows executed before each test case. Each key should match a testCases[].scenario value. The flow uses the same config-driven actions/validations as normal tests and can reference scenarioConfig values with ${scenarioConfig.fieldName}.",
-      "additionalProperties": {
-        "$ref": "#/$defs/scenarioDefinition"
-      }
     }
   },
   "$defs": {
@@ -92,20 +85,6 @@
       "properties": {
         "name": {
           "type": "string"
-        },
-        "scenario": {
-          "type": "string",
-          "enum": [
-            "prompt",
-            "template",
-            "figma",
-            "existingApp"
-          ],
-          "description": "Name of a reusable scenario flow under scenarioDefinitions. Built-in names used by this project are prompt, template, figma, and existingApp."
-        },
-        "scenarioConfig": {
-          "$ref": "#/$defs/scenarioConfig",
-          "description": "Parameters passed into the selected scenarioDefinition. Scenario definitions can reference these values with ${scenarioConfig.fieldName}."
         },
         "enabled": {
           "type": "boolean"
@@ -182,11 +161,6 @@
         },
         {
           "required": [
-            "scenario"
-          ]
-        },
-        {
-          "required": [
             "auth"
           ],
           "properties": {
@@ -232,152 +206,6 @@
           "required": [
             "includeTestCases"
           ]
-        }
-      ],
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "scenario": {
-                "const": "prompt"
-              }
-            },
-            "required": [
-              "scenario"
-            ]
-          },
-          "then": {
-            "required": [
-              "scenarioConfig"
-            ],
-            "properties": {
-              "scenarioConfig": {
-                "type": "object",
-                "required": [
-                  "type",
-                  "prompt"
-                ],
-                "additionalProperties": true,
-                "properties": {
-                  "type": {
-                    "const": "prompt"
-                  },
-                  "prompt": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "scenario": {
-                "const": "template"
-              }
-            },
-            "required": [
-              "scenario"
-            ]
-          },
-          "then": {
-            "required": [
-              "scenarioConfig"
-            ],
-            "properties": {
-              "scenarioConfig": {
-                "type": "object",
-                "required": [
-                  "type",
-                  "templateName"
-                ],
-                "additionalProperties": true,
-                "properties": {
-                  "type": {
-                    "const": "template"
-                  },
-                  "templateName": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "scenario": {
-                "const": "figma"
-              }
-            },
-            "required": [
-              "scenario"
-            ]
-          },
-          "then": {
-            "required": [
-              "scenarioConfig"
-            ],
-            "properties": {
-              "scenarioConfig": {
-                "type": "object",
-                "required": [
-                  "type",
-                  "figmaUrl",
-                  "figmaAppName"
-                ],
-                "additionalProperties": true,
-                "properties": {
-                  "type": {
-                    "const": "figma"
-                  },
-                  "figmaUrl": {
-                    "type": "string"
-                  },
-                  "figmaAppName": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "scenario": {
-                "const": "existingApp"
-              }
-            },
-            "required": [
-              "scenario"
-            ]
-          },
-          "then": {
-            "required": [
-              "scenarioConfig"
-            ],
-            "properties": {
-              "scenarioConfig": {
-                "type": "object",
-                "required": [
-                  "type",
-                  "appName"
-                ],
-                "additionalProperties": true,
-                "properties": {
-                  "type": {
-                    "const": "existingApp"
-                  },
-                  "appName": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
         }
       ]
     },
@@ -1313,117 +1141,6 @@
           }
         }
       ]
-    },
-    "scenarioConfig": {
-      "description": "Parameters for the selected JSON-defined scenario. The known scenarios use prompt, templateName, figmaUrl/figmaAppName, or appName, but additional properties are allowed for custom scenario definitions.",
-      "anyOf": [
-        {
-          "type": "object",
-          "required": [
-            "type",
-            "prompt"
-          ],
-          "additionalProperties": true,
-          "properties": {
-            "type": {
-              "const": "prompt"
-            },
-            "prompt": {
-              "type": "string"
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "type",
-            "templateName"
-          ],
-          "additionalProperties": true,
-          "properties": {
-            "type": {
-              "const": "template"
-            },
-            "templateName": {
-              "type": "string"
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "type",
-            "figmaUrl",
-            "figmaAppName"
-          ],
-          "additionalProperties": true,
-          "properties": {
-            "type": {
-              "const": "figma"
-            },
-            "figmaUrl": {
-              "type": "string"
-            },
-            "figmaAppName": {
-              "type": "string"
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": [
-            "type",
-            "appName"
-          ],
-          "additionalProperties": true,
-          "properties": {
-            "type": {
-              "const": "existingApp"
-            },
-            "appName": {
-              "type": "string"
-            }
-          }
-        },
-        {
-          "type": "object",
-          "additionalProperties": true
-        }
-      ]
-    },
-    "scenarioDefinition": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "description": {
-          "type": "string"
-        },
-        "beforeValidateActions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/action"
-          }
-        },
-        "pageActions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/action"
-          }
-        },
-        "pageAssertions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/assertion"
-          }
-        },
-        "validations": {
-          "type": "array",
-          "minItems": 0,
-          "items": {
-            "$ref": "#/$defs/validationOrReusable"
-          }
-        }
-      }
     },
     "authOptions": {
       "type": "object",

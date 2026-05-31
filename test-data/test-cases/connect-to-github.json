@@ -251,24 +251,6 @@
                 "role": "button",
                 "name": "Verify"
               }
-            },
-            {
-              "type": "click",
-              "name": "Authorize Symplr after GitHub device verification",
-              "locator": {
-                "strategy": "role",
-                "role": "button",
-                "name": "Authorize Symplr-io"
-              },
-              "validations": [
-                {
-                  "$template": "buttonIsVisible",
-                  "params": {
-                    "name": "Share",
-                    "timeout": 30000
-                  }
-                }
-              ]
             }
           ],
           "elseActions": [

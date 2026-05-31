@@ -66,7 +66,7 @@
           "$template": "elementIsVisibleByLocator",
           "params": {
             "name": "Welcome Back text element in the first screen",
-            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"ASText-949871\")",
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"ASText-427009\")",
             "first": true
           }
         },
@@ -129,7 +129,7 @@
           "type": "click",
           "locator": {
             "strategy": "locator",
-            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"ASText-949871\")"
+            "locator": ".MuiCollapse-root li.TreeItem.indicator p:has-text(\"ASText-427009\")"
           },
           "validations": [
             {
