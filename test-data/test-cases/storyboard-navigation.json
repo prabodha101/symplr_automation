@@ -3,11 +3,6 @@
     {
       "name": "Open Blueprint screen from dashboard",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -31,16 +26,14 @@
           "validateJson": true,
           "minBytes": 1
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Open Pages screen from dashboard",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -237,16 +230,14 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Generic Flow: Open Pages screen from dashboard and validate",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -298,16 +289,14 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Open Themes screen from dashboard",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -322,16 +311,14 @@
         {
           "$ref": "themesScreen"
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Open Variables screen from dashboard",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -346,6 +333,9 @@
         {
           "$ref": "variablesScreen"
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     }
   ]

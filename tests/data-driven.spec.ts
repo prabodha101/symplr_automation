@@ -787,7 +787,7 @@ for (const testCase of testData.testCases.filter(
   test.describe(testCase.name, () => {
     test.use({ auth: testCase.auth ?? { session: "authenticated" } });
 
-    test(`validates configured checks for ${testCase.name}`, async ({
+    test(`validates configured checks for test case: '${testCase.name}'`, async ({
       page,
     }, testInfo) => {
       const runContext = createRunContext(page);

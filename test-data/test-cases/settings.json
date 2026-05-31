@@ -3,11 +3,6 @@
     {
       "name": "Open Settings screen from dashboard",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -145,7 +140,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Simulation Detection helps protect your app by identifying if it’s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
+                "text": "Simulation Detection helps protect your app by identifying if it\u2019s being run in a simulated or fake environment, reducing the risk of fraud and unauthorized testing."
               }
             },
             {
@@ -169,7 +164,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Root Device Detection helps protect your app by detecting if it’s running on a rooted device, reducing the risk of data breaches and unauthorized access."
+                "text": "Root Device Detection helps protect your app by detecting if it\u2019s running on a rooted device, reducing the risk of data breaches and unauthorized access."
               }
             },
             {
@@ -193,7 +188,7 @@
             {
               "$template": "textIsVisible",
               "params": {
-                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device’s console, helping protect against data leaks and improving overall app security."
+                "text": "Disable Native Console Logging prevents sensitive app information from being logged to the device\u2019s console, helping protect against data leaks and improving overall app security."
               }
             }
           ],
@@ -456,6 +451,9 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     }
   ]

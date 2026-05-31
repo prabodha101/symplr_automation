@@ -3,11 +3,6 @@
     {
       "name": "Validate that the app can be built and run from the dashboard",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -70,16 +65,14 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Generic Flow: Validate that the app can be built and run from the dashboard",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -115,16 +108,14 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Validate Generating a QR code to run the app on a real device after app is built",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -192,16 +183,14 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Generate a QR code to run the app on a real device on build page",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "pageActions": [
         {
           "type": "click",
@@ -226,6 +215,9 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     }
   ]

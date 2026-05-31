@@ -3,7 +3,6 @@
     {
       "name": "Home page loads correctly",
       "enabled": true,
-      "path": "/",
       "pageAssertions": [
         {
           "type": "titleContains",
@@ -181,8 +180,8 @@
           "value": "${tokens.prompt}",
           "validations": [
             {
-              "type": "buttonIsEnabled",
-              "locator": {
+              "$template": "buttonIsEnabled",
+              "params": {
                 "name": "${tokens.startBuildingButton}"
               }
             }
@@ -195,6 +194,48 @@
             "strategy": "role",
             "role": "button",
             "name": "${tokens.startBuildingButton}"
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$ref": "storyboardReady"
+        }
+      ]
+    },
+    {
+      "name": "Load existing app",
+      "enabled": true,
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "name": "Focus app search input",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Search",
+            "exact": true
+          }
+        },
+        {
+          "type": "fill",
+          "name": "Search for existing app",
+          "locator": {
+            "strategy": "role",
+            "role": "textbox",
+            "name": "Search",
+            "exact": true
+          },
+          "value": "${tokens.appName}"
+        },
+        {
+          "type": "click",
+          "name": "Open existing app from search result",
+          "locator": {
+            "strategy": "text",
+            "text": "${tokens.appName}",
+            "exact": true,
+            "first": true
           }
         }
       ],

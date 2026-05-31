@@ -3,11 +3,6 @@
     {
       "name": "Validate that code can be sent by email from Developer Options",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -69,6 +64,9 @@
           "expectedExtension": ".zip",
           "minBytes": 1
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     }
   ]

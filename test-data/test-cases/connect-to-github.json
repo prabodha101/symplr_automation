@@ -3,11 +3,6 @@
     {
       "name": "Fresh Account: Validate that code can be pushed to GitHub from Developer Options",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -125,16 +120,14 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Fresh Account (With OTP): Validate that code can be pushed to GitHub from Developer Options",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -288,16 +281,14 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     },
     {
       "name": "Validate that code can be pushed to GitHub from Developer Options",
       "enabled": true,
-      "scenario": "existingApp",
-      "scenarioConfig": {
-        "type": "existingApp",
-        "appName": "${tokens.appName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -382,6 +373,9 @@
           "timeout": 180000,
           "pollIntervalMs": 5000
         }
+      ],
+      "prerequisiteTestCases": [
+        "Load existing app"
       ]
     }
   ]
