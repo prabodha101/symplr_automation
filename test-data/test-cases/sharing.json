@@ -3,11 +3,6 @@
     {
       "name": "Share an app with an existing user",
       "enabled": true,
-      "scenario": "template",
-      "scenarioConfig": {
-        "type": "template",
-        "templateName": "${tokens.templateName}"
-      },
       "beforeValidateActions": [
         {
           "type": "click",
@@ -91,6 +86,9 @@
             }
           ]
         }
+      ],
+      "prerequisiteTestCases": [
+        "Create app using template"
       ]
     }
   ]

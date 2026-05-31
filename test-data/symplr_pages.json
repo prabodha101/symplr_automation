@@ -3,12 +3,10 @@
   "imports": [
     "./common/defaults.json",
     "./common/tokens.json",
-    "./common/scenario-definitions.json",
     "./common/validation-templates.json",
     "./common/validation-sets.json",
     "./test-cases/home.json",
     "./test-cases/registration.json",
-    "./test-cases/create-app.json",
     "./test-cases/storyboard-navigation.json",
     "./test-cases/settings.json",
     "./test-cases/sharing.json",

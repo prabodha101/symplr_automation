@@ -122,7 +122,7 @@
       {
         "$template": "buttonIsVisible",
         "params": {
-          "name": "App Bar & Nav Bar",
+          "name": "Nav Bar",
           "first": true
         }
       }
