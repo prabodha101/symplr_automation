@@ -373,6 +373,8 @@ export async function waitForGmailEmail(
       const bodyHtml = extractBodyHtml(fullMessage.payload);
       const snippet = fullMessage.snippet ?? '';
 
+      console.log(` >- Received email: ${subject}`)
+
       if (
         options.subjectContains &&
         !subject.toLowerCase().includes(options.subjectContains.toLowerCase())

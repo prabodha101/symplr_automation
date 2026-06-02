@@ -43,7 +43,7 @@
         "Open Settings screen from dashboard",
         "Validate that code can be sent by email from Developer Options",
         "Validate that code can be pushed to GitHub from Developer Options",
-        "Validate that the app can be built and run from the dashboard",
+        "Generic Flow: Validate that the app can be built and run from the dashboard",
         "Generate a QR code to run the app on a real device on build page"
       ]
     },
