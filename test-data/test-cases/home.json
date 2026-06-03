@@ -92,7 +92,7 @@
             "strategy": "locator",
             "locator": "div[data-template-id=\"${tokens.templateId}\"]",
             "exact": true,
-            "nth": 1
+            "nth": 0
           }
         },
         {
