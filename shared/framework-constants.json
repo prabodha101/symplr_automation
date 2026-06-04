@@ -1,10 +1,98 @@
 {
-  "authSessionModes": ["authenticated", "none"],
-  "locatorStrategies": ["id", "role", "text", "label", "img", "placeholder", "altText", "title", "testId", "css", "xpath", "locator", "custom"],
-  "actionTypes": ["click", "fill", "check", "uncheck", "hover", "press", "selectOption", "download", "clickAndSwitchToPopup", "switchToPopupPage", "waitForTimeout", "waitForLoadState", "downloadAppDefinition", "downloadCodeEmail", "connectToGitHubEmail", "fillEmailCodeAndSubmit", "conditional", "buildAndRunApp", "waitForBuildComplete", "openRunOnDeviceModal", "waitForQrCodeGenerated", "switchToMainPage", "switchToRunPage"],
-  "conditionalAssertions": ["visible", "hidden", "attached"],
-  "includeSections": ["beforeValidateActions", "pageAssertions", "validations", "pageActions", "includeTestCases"],
-  "pageAssertions": ["titleEquals", "titleContains", "urlEquals", "urlContains"],
-  "locatorAssertions": ["visible", "hidden", "attached", "enabled", "disabled", "editable", "checked", "unchecked", "empty", "textEquals", "textContains", "valueEquals", "attributeEquals", "countEquals", "countGreaterThan", "classContains", "cssEquals"],
-  "assertionsNeedingExpected": ["titleEquals", "titleContains", "urlEquals", "urlContains", "textEquals", "textContains", "valueEquals", "attributeEquals", "countEquals", "countGreaterThan", "classContains", "cssEquals"]
+  "authSessionModes": [
+    "authenticated",
+    "none"
+  ],
+  "locatorStrategies": [
+    "id",
+    "role",
+    "text",
+    "label",
+    "img",
+    "placeholder",
+    "altText",
+    "title",
+    "testId",
+    "css",
+    "xpath",
+    "locator",
+    "custom"
+  ],
+  "actionTypes": [
+    "click",
+    "fill",
+    "check",
+    "uncheck",
+    "hover",
+    "press",
+    "selectOption",
+    "download",
+    "clickAndSwitchToPopup",
+    "switchToPopupPage",
+    "waitForTimeout",
+    "waitForLoadState",
+    "downloadAppDefinition",
+    "downloadCodeEmail",
+    "connectToGitHubEmail",
+    "fillEmailCodeAndSubmit",
+    "conditional",
+    "buildAndRunApp",
+    "waitForBuildComplete",
+    "openRunOnDeviceModal",
+    "waitForQrCodeGenerated",
+    "switchToMainPage",
+    "switchToRunPage",
+    "deleteUserIfExistsAsSuperAdmin"
+  ],
+  "conditionalAssertions": [
+    "visible",
+    "hidden",
+    "attached"
+  ],
+  "includeSections": [
+    "beforeValidateActions",
+    "pageAssertions",
+    "validations",
+    "pageActions",
+    "includeTestCases"
+  ],
+  "pageAssertions": [
+    "titleEquals",
+    "titleContains",
+    "urlEquals",
+    "urlContains"
+  ],
+  "locatorAssertions": [
+    "visible",
+    "hidden",
+    "attached",
+    "enabled",
+    "disabled",
+    "editable",
+    "checked",
+    "unchecked",
+    "empty",
+    "textEquals",
+    "textContains",
+    "valueEquals",
+    "attributeEquals",
+    "countEquals",
+    "countGreaterThan",
+    "classContains",
+    "cssEquals"
+  ],
+  "assertionsNeedingExpected": [
+    "titleEquals",
+    "titleContains",
+    "urlEquals",
+    "urlContains",
+    "textEquals",
+    "textContains",
+    "valueEquals",
+    "attributeEquals",
+    "countEquals",
+    "countGreaterThan",
+    "classContains",
+    "cssEquals"
+  ]
 }

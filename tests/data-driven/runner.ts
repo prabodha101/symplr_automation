@@ -20,6 +20,7 @@ import {
   runDownloadCodeEmailAction,
   runFillEmailCodeAndSubmitAction,
 } from './email-actions';
+import { runDeleteUserIfExistsAsSuperAdminAction } from './admin-actions';
 import type { ActionConditionConfig, ActionConfig, IncludeSection, PageCase, RunContext, ValidationConfig } from './models';
 
 export { createRunContext } from './context';
@@ -43,6 +44,7 @@ export async function runPrerequisiteTestCases(
     }
 
     await test.step(` >> prerequisite test case: ${prerequisiteTestCase.name}`, async () => {
+      console.log(` >> prerequisite test case: ${prerequisiteTestCase.name}`)
       await runFullConfiguredTestCaseFlow(
         context,
         prerequisiteTestCase,
@@ -84,6 +86,7 @@ export async function runConfiguredTestCaseSections(
   if (hasIncludedSection(sections, 'beforeValidateActions')) {
     for (const action of pageCase.beforeValidateActions ?? []) {
       await test.step(` >> before validation action: ${action.name ?? action.type}`, async () => {
+        console.log(` >> before validation action: ${action.name ?? action.type}`)
         await runAction(context, action, undefined, testInfo, pageCase);
       });
     }
@@ -92,6 +95,7 @@ export async function runConfiguredTestCaseSections(
   if (hasIncludedSection(sections, 'pageAssertions')) {
     for (const assertion of pageCase.pageAssertions ?? []) {
       await test.step(` >> page assertion: ${assertion.type}`, async () => {
+        console.log(` >> page assertion: ${assertion.type}`)
         await runPageAssertion(getActivePage(context), pageCase, assertion);
       });
     }
@@ -129,6 +133,7 @@ async function runIncludedTestCases(
     }
 
     await test.step(` >> included test case: ${includedTestCase.name}`, async () => {
+      console.log(` >> included test case: ${includedTestCase.name}`)
       await runConfiguredTestCaseSections(
         context,
         includedTestCase,
@@ -181,6 +186,7 @@ export async function runPageActions(
       }
 
       await test.step(` >> Page action block: ${actionLabel}`, async () => {
+        console.log(` >> Page action block: ${actionLabel}`)
         await runValidations(context, pageCase, postActionValidations, testInfo);
       });
 
@@ -190,10 +196,12 @@ export async function runPageActions(
 
     if (action.retryOnValidationFailure && postActionValidations.length > 0) {
       await test.step(` >> Page action with validation retry: ${actionLabel}`, async () => {
+        console.log(` >> Page action with validation retry: ${actionLabel}`)
         await runActionWithValidationRetry(context, pageCase, action, postActionValidations, testInfo);
       });
     } else {
       await test.step(` >> Page action: ${actionLabel}`, async () => {
+        console.log(` >> Page action: ${actionLabel}`)
         await runAction(context, action, undefined, testInfo, pageCase);
       });
 
@@ -378,6 +386,11 @@ export async function runAction(
     case 'switchToRunPage':
       await switchToRunPage(context);
       return;
+    case 'deleteUserIfExistsAsSuperAdmin': {
+      const targetUserValue = resolveActionValue(action);
+      await runDeleteUserIfExistsAsSuperAdminAction(action, targetUserValue);
+      return;
+    }
     default: {
       const unknown: never = action.type;
       throw new Error(`Unsupported action type: ${unknown}`);
@@ -401,6 +414,7 @@ async function runConditionalAction(
   const branchValidations = matched ? action.thenValidations ?? [] : action.elseValidations ?? [];
 
   await test.step(` >> conditional ${branchName} branch: ${action.name ?? action.type}`, async () => {
+    console.log(` >> conditional ${branchName} branch: ${action.name ?? action.type}`)
     await runPageActions(context, pageCase, branchActions, testInfo);
     await runValidations(context, pageCase, branchValidations, testInfo);
   });

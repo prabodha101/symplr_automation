@@ -65,7 +65,8 @@ export type ActionConfig = {
     | 'openRunOnDeviceModal'
     | 'waitForQrCodeGenerated'
     | 'switchToMainPage'
-    | 'switchToRunPage';
+    | 'switchToRunPage'
+    | 'deleteUserIfExistsAsSuperAdmin';
   name?: string;
   value?: string | number | boolean;
   valueEnv?: string;
