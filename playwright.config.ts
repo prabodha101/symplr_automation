@@ -12,7 +12,6 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
-  //reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: process.env.APP_URL,
     trace: 'on-first-retry',
@@ -37,15 +36,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          args: [
-            "--disable-blink-features=AutomationControlled",
-          ],
-        }
-      }
-    }
-
-    // Uncomment these when you want wider browser coverage.
-    // { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    // { name: 'webkit', use: { ...devices['Desktop Safari'] } }
-  ]
+          args: ['--disable-blink-features=AutomationControlled'],
+        },
+      },
+    },
+  ],
 });

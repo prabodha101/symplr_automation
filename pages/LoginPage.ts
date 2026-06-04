@@ -1,34 +1,18 @@
-import { expect, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 export class LoginPage {
   constructor(private readonly page: Page) {}
 
   private get signInButton() {
-    return this.page.getByRole('button', { name: 'Sign in' });
+    return this.page.getByRole('button', { name: /sign in/i });
   }
 
   private get continueWithText() {
-    return this.page.getByText('Continue with');
+    return this.page.getByText(/continue with/i);
   }
 
   private get googleSignInButton() {
-    return this.page.getByRole('button', { name: 'Sign in with Google' });
-  }
-
-  private get emailInput() {
-    return this.page.getByRole('textbox', { name: 'Email or phone' });
-  }
-
-  private get nextButton() {
-    return this.page.getByRole('button', { name: 'Next' });
-  }
-
-  private get welcomeHeading() {
-    return this.page.getByRole('heading', { name: 'Welcome' }).locator('span');
-  }
-
-  private get passwordInput() {
-    return this.page.getByRole('textbox', { name: 'Enter your password' });
+    return this.page.getByRole('button', { name: /google/i });
   }
 
   async open(appUrl: string): Promise<void> {
@@ -42,12 +26,37 @@ export class LoginPage {
     await expect(this.continueWithText).toBeVisible();
     await this.googleSignInButton.click();
 
-    await expect(this.page.getByText('Sign in', { exact: true })).toBeVisible();
-    await this.emailInput.fill(email);
-    await this.nextButton.click();
+    const emailInput = await this.waitForFirstVisibleLocator([
+      this.page.getByRole('textbox', { name: /email|phone/i }),
+      this.page.locator('input[type="email"], input[type="text"]').first(),
+    ]);
+    await emailInput.fill(email);
+    await this.getNextButton().click();
 
-    await expect(this.welcomeHeading).toBeVisible({ timeout: 30000 });
-    await this.passwordInput.fill(password);
-    await this.nextButton.click();
+    const passwordInput = await this.waitForFirstVisibleLocator([
+      this.page.getByRole('textbox', { name: /password/i }),
+      this.page.locator('input[type="password"]').first(),
+    ], 60_000);
+    await passwordInput.fill(password);
+    await this.getNextButton().click();
+  }
+
+  private getNextButton(): Locator {
+    return this.page.getByRole('button', { name: /^next$/i });
+  }
+
+  private async waitForFirstVisibleLocator(locators: Locator[], timeoutMs = 30_000): Promise<Locator> {
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+      for (const locator of locators) {
+        if (await locator.isVisible().catch(() => false)) {
+          return locator;
+        }
+      }
+      await this.page.waitForTimeout(500);
+    }
+
+    throw new Error('Could not find any expected Google authentication field before timeout.');
   }
 }

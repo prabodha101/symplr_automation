@@ -1,5 +1,5 @@
-import type { FrameLocator, TestInfo } from '@playwright/test';
-import type { AuthPageOptions, Locator, Page } from '../fixtures/app-fixtures';
+import type { FrameLocator, Page } from '@playwright/test';
+import type { AuthPageOptions } from '../utils/auth-session';
 import type { AppRunPage } from '../../pages/AppRunPage';
 
 export type LocatorConfig = {
@@ -137,14 +137,8 @@ export type ValidationConfig = {
   assertions: AssertionConfig[];
 };
 
-export type ValidationRef = {
-  $ref: string;
-};
-
-export type ValidationTemplateRef = {
-  $template: string;
-  params?: Record<string, unknown>;
-};
+export type ValidationRef = { $ref: string };
+export type ValidationTemplateRef = { $template: string; params?: Record<string, unknown> };
 
 export type IncludeSection =
   | 'beforeValidateActions'
@@ -153,12 +147,7 @@ export type IncludeSection =
   | 'pageActions'
   | 'includeTestCases';
 
-export type TestCaseInclude =
-  | string
-  | {
-      name: string;
-      sections?: IncludeSection[];
-    };
+export type TestCaseInclude = string | { name: string; sections?: IncludeSection[] };
 
 export type ValidationTemplateDefinition =
   | ValidationConfig
@@ -199,24 +188,15 @@ export type TestData = {
 };
 
 export type RunContext = {
-  mainPage: Page;
-  activePage: Page;
-  popupPage?: Page;
-  runPage?: Page;
+  pages: {
+    main: Page;
+    popup?: Page;
+    run?: Page;
+  };
+  activePageKey: 'main' | 'popup' | 'run';
   appRunPage?: AppRunPage;
 };
 
-export type NormalizedTestCaseInclude = {
-  name: string;
-  sections: IncludeSection[];
-};
+export type NormalizedTestCaseInclude = { name: string; sections: IncludeSection[] };
 
 export type LocatorRoot = Page | FrameLocator;
-
-export type ActionExecutionParams = {
-  context: RunContext;
-  action: ActionConfig;
-  defaultLocator?: Locator;
-  testInfo?: TestInfo;
-  pageCase?: PageCase;
-};
