@@ -1,13 +1,13 @@
-import type { Locator } from '../fixtures/app-fixtures';
+import type { Locator, Page } from '@playwright/test';
 import type { LocatorConfig, LocatorRoot } from './models';
 
-export function buildLocator(page: import('../fixtures/app-fixtures').Page, locatorConfig: LocatorConfig): Locator {
+export function buildLocator(page: Page, locatorConfig: LocatorConfig): Locator {
   const frameSelector = locatorConfig.frameLocator?.trim();
   const root: LocatorRoot = frameSelector ? page.frameLocator(frameSelector) : page;
   return buildLocatorFromRoot(root, locatorConfig);
 }
 
-export function buildLocatorFromRoot(root: LocatorRoot, locatorConfig: LocatorConfig): Locator {
+function buildLocatorFromRoot(root: LocatorRoot, locatorConfig: LocatorConfig): Locator {
   let locator: Locator;
 
   switch (locatorConfig.strategy) {
@@ -18,7 +18,6 @@ export function buildLocatorFromRoot(root: LocatorRoot, locatorConfig: LocatorCo
     }
     case 'role': {
       if (!locatorConfig.role) throw new Error('role locator requires "role".');
-
       if (locatorConfig.role.toLowerCase() === 'input') {
         const inputName = locatorConfig.name ?? locatorConfig.text;
         if (inputName) {
@@ -31,7 +30,6 @@ export function buildLocatorFromRoot(root: LocatorRoot, locatorConfig: LocatorCo
         }
         break;
       }
-
       locator = root.getByRole(locatorConfig.role as never, {
         name: locatorConfig.name,
         exact: locatorConfig.exact,
@@ -60,7 +58,6 @@ export function buildLocatorFromRoot(root: LocatorRoot, locatorConfig: LocatorCo
     case 'img': {
       const imgName = locatorConfig.name ?? locatorConfig.text;
       if (!imgName) throw new Error('img locator requires "name" or "text".');
-      console.log(`  >> Waiting for img locator with name: ${imgName}`);
       locator = root.getByRole('img', { name: imgName, exact: locatorConfig.exact });
       break;
     }
@@ -101,9 +98,7 @@ export function buildLocatorFromRoot(root: LocatorRoot, locatorConfig: LocatorCo
     }
     case 'custom': {
       const customLocator = locatorConfig.locator ?? locatorConfig.selector ?? locatorConfig.value;
-      if (!customLocator) {
-        throw new Error('custom locator strategy requires "locator", "selector", or "value".');
-      }
+      if (!customLocator) throw new Error('custom locator strategy requires "locator", "selector", or "value".');
       const selector = locatorConfig.engine === 'xpath' && !customLocator.startsWith('xpath=')
         ? `xpath=${customLocator}`
         : customLocator;
@@ -131,6 +126,6 @@ export function containsPattern(value: string): RegExp {
   return new RegExp(escapeRegExp(value));
 }
 
-export function escapeCssAttributeValue(value: string): string {
+function escapeCssAttributeValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

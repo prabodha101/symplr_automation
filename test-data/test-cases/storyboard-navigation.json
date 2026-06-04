@@ -11,6 +11,10 @@
             "locator": "[data-testid^=\"nav-item-\"][aria-label=\"Blueprint\"]",
             "exact": true
           }
+        },
+        {
+          "type": "waitForTimeout",
+          "timeout": 10000
         }
       ],
       "validations": [

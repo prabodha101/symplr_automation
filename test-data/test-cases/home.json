@@ -56,6 +56,29 @@
       ]
     },
     {
+      "name": "Open Home page",
+      "enabled": true,
+      "beforeValidateActions": [
+        {
+          "type": "click",
+          "locator": {
+            "strategy": "locator",
+            "locator": "button[aria-label=\"Home\"]",
+            "exact": true
+          }
+        }
+      ],
+      "validations": [
+        {
+          "$template": "headingIsVisibleByText",
+          "params": {
+            "text": "${tokens.buildAppsHeading}",
+            "level": 1
+          }
+        }
+      ]
+    },
+    {
       "name": "Create app using template",
       "enabled": true,
       "beforeValidateActions": [

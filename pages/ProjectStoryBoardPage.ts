@@ -1,109 +1,39 @@
-import { Download, expect, Page, TestInfo } from '@playwright/test';
-import { env } from 'node:process';
-import { AppRunPage } from './AppRunPage';
+import { expect, type Page, type TestInfo } from '@playwright/test';
+import { BuildRunPage } from './BuildRunPage';
+import { DeveloperOptionsPanel } from './DeveloperOptionsPanel';
 
 export class ProjectStoryBoardPage {
-  constructor(private readonly page: Page) { }
+  private readonly developerOptionsPanel: DeveloperOptionsPanel;
+  private readonly buildRunPage: BuildRunPage;
+
+  constructor(private readonly page: Page) {
+    this.developerOptionsPanel = new DeveloperOptionsPanel(page);
+    this.buildRunPage = new BuildRunPage(page);
+  }
 
   get homeButton() {
     return this.page.getByRole('button', { name: 'Home' });
   }
 
-  get downloadAppDefinitionButton() {
-    return this.page
-      .getByLabel('Download App Definition')
-      .getByRole('button', { name: 'Button' });
-  }
-
   async waitForLoaded(timeout = 5 * 60 * 1000): Promise<void> {
-    console.log('  >> Waiting for Project Storyboard page to load...');
-    await this.page.waitForURL(
-      /\/dashboard\/projects\?appId=[0-9a-fA-F-]+$/,
-      { timeout }
-    );
+    await this.page.waitForURL(/\/dashboard\/projects\?appId=[0-9a-fA-F-]+$/, { timeout });
     await expect(this.homeButton).toBeVisible();
   }
 
-  async waitForAppDefinitionAvailable(timeout = 3 * 60 * 1000): Promise<void> {
-    console.log('  >> Waiting for app definition to be available...');
-    await this.page.waitForTimeout(10000); // Initial wait to allow the app definition generation process to start
-    await expect(this.downloadAppDefinitionButton).toBeVisible({ timeout });
-    await expect(this.downloadAppDefinitionButton).toBeEnabled({ timeout });
+  async waitForAppDefinitionAvailable(timeout?: number): Promise<void> {
+    await this.developerOptionsPanel.waitForAppDefinitionAvailable(timeout);
   }
 
   async downloadAppDefinition(testInfo: TestInfo): Promise<string> {
-    await this.waitForAppDefinitionAvailable();
-
-    const downloadPromise = this.page.waitForEvent('download');
-    await this.downloadAppDefinitionButton.click();
-    const download: Download = await downloadPromise;
-
-    const downloadedFilePath = testInfo.outputPath(download.suggestedFilename());
-    await download.saveAs(downloadedFilePath);
-    return downloadedFilePath;
+    return await this.developerOptionsPanel.downloadAppDefinition(testInfo);
   }
 
   async openBuildMenu(): Promise<void> {
-    await expect(this.downloadAppDefinitionButton).toBeVisible();
-
-    const parent = this.downloadAppDefinitionButton.locator('..');
-    const parentContainer = parent.locator('..');
-    const buildMenuButton = parentContainer.locator(':scope > button').nth(1);
-
-    await expect(buildMenuButton).toBeVisible();
-    await buildMenuButton.click();
-    await expect(this.page.getByText('Build & Run App')).toBeVisible();
+    await this.developerOptionsPanel.openBuildMenu();
   }
 
   async buildAndRunApp(): Promise<Page> {
-    //await this.openBlueprint();
     await this.openBuildMenu();
-
-    const buildButton = this.page.getByRole('button', { name: 'Build' });
-    await expect(buildButton).toBeVisible();
-
-    const [previewPage] = await Promise.all([
-      this.page.waitForEvent('popup'),
-      buildButton.click(),
-    ]);
-
-    await previewPage.waitForLoadState('domcontentloaded');
-
-    await expect
-      .poll(
-        () => {
-          const currentUrl = previewPage.url();
-
-          try {
-            const url = new URL(currentUrl);
-            const appBaseUrl = env.APP_URL ?? 'https://101studio.co';
-            const expectedOrigin = new URL(appBaseUrl).origin;
-
-            const isCorrectPath =
-              url.origin === expectedOrigin &&
-              url.pathname === '/dashboard/preview';
-
-            const appId = url.searchParams.get('appId');
-            const action = url.searchParams.get('action');
-
-            const hasValidAppId = /^[0-9a-fA-F-]{36}$/.test(appId ?? '');
-            const hasCorrectAction = action === 'build';
-
-            return isCorrectPath && hasValidAppId && hasCorrectAction;
-          } catch {
-            return false;
-          }
-        },
-        {
-          timeout: 1 * 60 * 1000, // 1 minute
-          intervals: [1000, 2000, 5000],
-        }
-      )
-      .toBe(true);
-
-    const appRunPage = new AppRunPage(previewPage);
-    await appRunPage.waitForBuildComplete();
-    return previewPage;
+    return await this.buildRunPage.buildAndRunApp();
   }
-
 }

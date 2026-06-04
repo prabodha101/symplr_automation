@@ -1,6 +1,7 @@
 import { test } from './fixtures/app-fixtures';
 import { testData } from './data-driven/config';
 import { createRunContext, runConfiguredTestCaseSections, runPrerequisiteTestCases } from './data-driven/runner';
+import { getActivePage } from './data-driven/context';
 
 for (const testCase of testData.testCases.filter((item) => item.enabled !== false)) {
   test.describe(testCase.name, () => {
@@ -8,7 +9,6 @@ for (const testCase of testData.testCases.filter((item) => item.enabled !== fals
 
     test(`validates configured checks for test case: '${testCase.name}'`, async ({ page }, testInfo) => {
       const runContext = createRunContext(page);
-      console.log(`>-- Running test case : ${testCase.name}`);
 
       await runPrerequisiteTestCases(runContext, testCase, testInfo, [testCase.name]);
 
@@ -18,7 +18,7 @@ for (const testCase of testData.testCases.filter((item) => item.enabled !== fals
           process.env.APP_URL ?? testCase.baseUrl ?? testData.defaults?.baseUrl,
         ).toString();
 
-        await runContext.activePage.goto(targetUrl, {
+        await getActivePage(runContext).goto(targetUrl, {
           waitUntil: 'domcontentloaded',
           timeout: testCase.navigationTimeout ?? testData.defaults?.navigationTimeout ?? 15_000,
         });

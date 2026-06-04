@@ -1,0 +1,5 @@
+export const APP_DEFINITION_TIMEOUT_MS = 3 * 60 * 1000;
+export const BUILD_PREVIEW_TIMEOUT_MS = 5 * 60 * 1000;
+export const BUILD_COMPLETE_TIMEOUT_MS = 4 * 60 * 1000;
+export const QR_CODE_TIMEOUT_MS = 60 * 1000;
+export const ELEMENT_VISIBLE_TIMEOUT_MS = 60 * 1000;
